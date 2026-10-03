@@ -44,7 +44,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
             <img
               src={cover}
               alt={`${collection.name} cover`}
-              className="aspect-2/3 w-40 object-cover shadow-lg"
+              className="aspect-2/3 w-40 object-contain shadow-lg"
             />
           ) : null}
           <div className="flex flex-col gap-4">

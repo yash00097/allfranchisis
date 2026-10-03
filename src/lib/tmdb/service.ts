@@ -54,27 +54,44 @@ async function tmdbFetch<T>(path: string, params?: URLSearchParams) {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, {
-      headers: bearerToken
-        ? { Authorization: `Bearer ${bearerToken}` }
-        : undefined,
-      next: { revalidate: 3600 },
-      signal: controller.signal,
-    });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          headers: bearerToken
+            ? { Authorization: `Bearer ${bearerToken}` }
+            : undefined,
+          next: { revalidate: 3600 },
+          signal: controller.signal,
+        });
 
-    if (response.status === 429) {
-      throw new Error("TMDB rate limit reached. Please try again shortly.");
-    }
-    if (!response.ok) {
-      throw new Error(`TMDB request failed with status ${response.status}.`);
-    }
+        if (response.status === 429) {
+          throw new Error("TMDB rate limit reached. Please try again shortly.");
+        }
+        if (!response.ok) {
+          throw new Error(
+            `TMDB request failed with status ${response.status}.`,
+          );
+        }
 
-    return (await response.json()) as T;
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("TMDB request timed out.");
+        return (await response.json()) as T;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error("TMDB request timed out.");
+        }
+        if (error instanceof TypeError && attempt === 0) {
+          continue;
+        }
+        if (error instanceof TypeError) {
+          throw new Error(
+            "Unable to reach TMDB. Check the server network connection and try again.",
+          );
+        }
+        throw error;
+      }
     }
-    throw error;
+    throw new Error(
+      "Unable to reach TMDB. Check the server network connection and try again.",
+    );
   } finally {
     clearTimeout(timeout);
   }

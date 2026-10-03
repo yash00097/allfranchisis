@@ -26,13 +26,13 @@ export function MediaCard({ media }: MediaCardProps) {
       href={`/media/${media.mediaType.toLowerCase()}/${media.tmdbId}`}
       className="group block"
     >
-      <Card className="h-full overflow-hidden transition-transform duration-200 group-hover:-translate-y-1">
+      <Card className="h-full overflow-hidden">
         <div className="aspect-[2/3] overflow-hidden bg-muted">
           {media.posterPath ? (
             <img
               src={tmdbImage(media.posterPath, "w500") ?? undefined}
               alt={`${media.title} poster`}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain"
             />
           ) : (
             <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">

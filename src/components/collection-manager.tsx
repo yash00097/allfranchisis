@@ -66,6 +66,8 @@ export function CollectionManager({
   );
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [addingKey, setAddingKey] = useState("");
+  const [addError, setAddError] = useState("");
 
   async function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,6 +85,31 @@ export function CollectionManager({
     }
   }
 
+  async function handleAdd(formData: FormData) {
+    const key = `${formData.get("mediaType")}-${formData.get("tmdbId")}`;
+    setAddingKey(key);
+    setAddError("");
+    try {
+      await addMediaToCollection(formData);
+      setAddError("");
+      router.refresh();
+    } catch (error) {
+      setAddError(
+        error instanceof Error ? error.message : "Unable to add this title.",
+      );
+    } finally {
+      setAddingKey("");
+    }
+  }
+
+  async function handleMutation(
+    action: (formData: FormData) => Promise<void>,
+    formData: FormData,
+  ) {
+    await action(formData);
+    router.refresh();
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <Card>
@@ -90,7 +117,10 @@ export function CollectionManager({
           <CardTitle>Create collection</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={createCollection} className="grid gap-4 md:grid-cols-2">
+          <form
+            action={(formData) => handleMutation(createCollection, formData)}
+            className="grid gap-4 md:grid-cols-2"
+          >
             <Field label="Name" name="name" required />
             <Field
               label="Slug"
@@ -132,6 +162,9 @@ export function CollectionManager({
           {searchError ? (
             <p className="text-sm text-destructive">{searchError}</p>
           ) : null}
+          {addError ? (
+            <p className="text-sm text-destructive">{addError}</p>
+          ) : null}
           {searchResults.map((result) => (
             <div
               key={`${result.mediaType}-${result.id}`}
@@ -161,7 +194,7 @@ export function CollectionManager({
                   {result.voteAverage?.toFixed(1) ?? "N/A"}
                 </p>
               </div>
-              <form action={addMediaToCollection} className="self-center">
+              <form action={handleAdd} className="self-center">
                 <input
                   type="hidden"
                   name="collectionId"
@@ -173,8 +206,17 @@ export function CollectionManager({
                   name="mediaType"
                   value={result.mediaType}
                 />
-                <Button type="submit" size="sm" disabled={!selectedCollection}>
-                  Add
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={
+                    !selectedCollection ||
+                    addingKey === `${result.mediaType}-${result.id}`
+                  }
+                >
+                  {addingKey === `${result.mediaType}-${result.id}`
+                    ? "Adding..."
+                    : "Add"}
                 </Button>
               </form>
             </div>
@@ -205,9 +247,9 @@ export function CollectionManager({
 
       {collections.map((collection) => (
         <ManagedCollection
-          key={collection.id}
+          key={`${collection.id}-${collection.name}-${collection.slug}-${collection.media.map((item) => item.id).join(",")}`}
           collection={collection}
-          routerRefresh={() => router.refresh()}
+          handleMutation={handleMutation}
         />
       ))}
       {!collections.length ? (
@@ -226,10 +268,13 @@ export function CollectionManager({
 
 function ManagedCollection({
   collection,
-  routerRefresh,
+  handleMutation,
 }: {
   collection: ManagerCollection;
-  routerRefresh: () => void;
+  handleMutation: (
+    action: (formData: FormData) => Promise<void>,
+    formData: FormData,
+  ) => Promise<void>;
 }) {
   const [media, setMedia] = useState(collection.media);
   return (
@@ -238,7 +283,10 @@ function ManagedCollection({
         <CardTitle>{collection.name}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <form action={updateCollection} className="grid gap-3 md:grid-cols-2">
+        <form
+          action={(formData) => handleMutation(updateCollection, formData)}
+          className="grid gap-3 md:grid-cols-2"
+        >
           <input type="hidden" name="id" value={collection.id} />
           <Field
             label="Name"
@@ -309,7 +357,11 @@ function ManagedCollection({
               >
                 ↓
               </Button>
-              <form action={removeMediaFromCollection}>
+              <form
+                action={(formData) =>
+                  handleMutation(removeMediaFromCollection, formData)
+                }
+              >
                 <input
                   type="hidden"
                   name="collectionId"
@@ -323,7 +375,11 @@ function ManagedCollection({
             </div>
           ))}
           {media.length ? (
-            <form action={reorderCollectionMedia} onSubmit={routerRefresh}>
+            <form
+              action={(formData) =>
+                handleMutation(reorderCollectionMedia, formData)
+              }
+            >
               <input type="hidden" name="collectionId" value={collection.id} />
               <input
                 type="hidden"
@@ -339,7 +395,7 @@ function ManagedCollection({
           )}
         </div>
         <form
-          action={deleteCollection}
+          action={(formData) => handleMutation(deleteCollection, formData)}
           onSubmit={(event) => {
             if (!window.confirm(`Delete ${collection.name}?`))
               event.preventDefault();

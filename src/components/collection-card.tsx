@@ -19,16 +19,16 @@ export function CollectionCard({ collection }: CollectionCardProps) {
 
   return (
     <Link href={`/collections/${collection.slug}`} className="group block">
-      <Card className="h-full transition-transform duration-200 group-hover:-translate-y-1">
-        <div className="aspect-[16/10] overflow-hidden bg-muted">
+      <Card className="self-start">
+        <div className="flex justify-center bg-muted">
           {image ? (
             <img
               src={image}
               alt=""
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="block h-auto w-full object-contain"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            <div className="flex min-h-32 w-full items-center justify-center text-sm text-muted-foreground">
               No cover image
             </div>
           )}
