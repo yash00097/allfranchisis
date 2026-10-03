@@ -90,6 +90,7 @@ export default async function MediaPage({
       title={tv.name}
       backdrop={tmdbImage(tv.backdrop_path, "original")}
       poster={tmdbImage(tv.poster_path, "w500")}
+      alignPosterTop
     >
       <div className="flex flex-wrap gap-2">
         <Badge>
@@ -171,11 +172,13 @@ function MediaShell({
   title,
   backdrop,
   poster,
+  alignPosterTop = false,
   children,
 }: {
   title: string;
   backdrop: string | null;
   poster: string | null;
+  alignPosterTop?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -189,12 +192,14 @@ function MediaShell({
           />
         ) : null}
         <div className="absolute inset-0 -z-10 bg-background/90" />
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-10 lg:flex-row lg:items-end lg:py-16">
+        <div
+          className={`mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-10 lg:flex-row lg:py-16 ${alignPosterTop ? "lg:items-start" : "lg:items-end"}`}
+        >
           {poster ? (
             <img
               src={poster}
               alt={`${title} poster`}
-                    className="aspect-2/3 w-48 object-cover shadow-lg"
+              className="aspect-2/3 w-48 object-cover shadow-lg"
             />
           ) : null}
           <div className="flex max-w-3xl flex-col gap-4">

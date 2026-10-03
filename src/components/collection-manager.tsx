@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   addMediaToCollection,
   createCollection,
@@ -68,6 +68,17 @@ export function CollectionManager({
   const [searchError, setSearchError] = useState("");
   const [addingKey, setAddingKey] = useState("");
   const [addError, setAddError] = useState("");
+  const activeCollection = collections.find(
+    (collection) => collection.id === selectedCollection,
+  );
+
+  useEffect(() => {
+    if (
+      !collections.some((collection) => collection.id === selectedCollection)
+    ) {
+      setSelectedCollection(collections[0]?.id ?? "");
+    }
+  }, [collections, selectedCollection]);
 
   async function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,6 +156,23 @@ export function CollectionManager({
           <CardTitle>Find media on TMDB</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {collections.length ? (
+            <label className="grid max-w-md gap-2">
+              <Label htmlFor="targetCollection">Selected collection</Label>
+              <select
+                id="targetCollection"
+                value={selectedCollection}
+                onChange={(event) => setSelectedCollection(event.target.value)}
+                className="h-8 border border-input bg-background px-2 text-sm"
+              >
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <form
             onSubmit={handleSearch}
             className="flex flex-col gap-2 sm:flex-row"
@@ -221,37 +249,21 @@ export function CollectionManager({
               </form>
             </div>
           ))}
-          {collections.length ? (
-            <label className="grid max-w-md gap-2">
-              <Label htmlFor="targetCollection">Add results to</Label>
-              <select
-                id="targetCollection"
-                value={selectedCollection}
-                onChange={(event) => setSelectedCollection(event.target.value)}
-                className="h-8 border border-input bg-background px-2 text-sm"
-              >
-                {collections.map((collection) => (
-                  <option key={collection.id} value={collection.id}>
-                    {collection.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
+          {!collections.length ? (
             <p className="text-sm text-muted-foreground">
               Create a collection before adding media.
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
-      {collections.map((collection) => (
+      {activeCollection ? (
         <ManagedCollection
-          key={`${collection.id}-${collection.name}-${collection.slug}-${collection.media.map((item) => item.id).join(",")}`}
-          collection={collection}
+          key={`${activeCollection.id}-${activeCollection.name}-${activeCollection.slug}-${activeCollection.media.map((item) => item.id).join(",")}`}
+          collection={activeCollection}
           handleMutation={handleMutation}
         />
-      ))}
+      ) : null}
       {!collections.length ? (
         <Empty className="border">
           <EmptyHeader>

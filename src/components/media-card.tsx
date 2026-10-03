@@ -27,7 +27,7 @@ export function MediaCard({ media }: MediaCardProps) {
       className="group block"
     >
       <Card className="h-full overflow-hidden">
-        <div className="aspect-[2/3] overflow-hidden bg-muted">
+        <div className="aspect-2/3 overflow-hidden bg-muted">
           {media.posterPath ? (
             <img
               src={tmdbImage(media.posterPath, "w500") ?? undefined}
