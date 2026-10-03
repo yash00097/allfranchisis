@@ -1,13 +1,36 @@
 import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
 import { CollectionManager } from "@/components/collection-manager";
-import { requireCollectionManager } from "@/lib/auth/collection-manager";
+import { buttonVariants } from "@/components/ui/button";
+import { isCollectionManager } from "@/lib/auth/collection-manager";
 import { listCollectionsForManager } from "@/lib/collections";
 
 export const dynamic = "force-dynamic";
 
 export default async function ManageCollectionsPage() {
   await auth.protect();
-  await requireCollectionManager();
+  const canManageCollections = await isCollectionManager();
+
+  if (!canManageCollections) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-5 px-6 py-16 text-center">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
+          Owner workspace
+        </p>
+        <h1 className="font-heading text-3xl font-bold">
+          Collection management is owner-only
+        </h1>
+        <p className="text-muted-foreground">
+          This area is reserved for the collection owner. You can still browse
+          all published collections from the public discovery page.
+        </p>
+        <Link href="/collections" className={buttonVariants()}>
+          Browse collections
+        </Link>
+      </main>
+    );
+  }
+
   const collections = await listCollectionsForManager();
 
   return (
