@@ -12,10 +12,68 @@ datasource db {
   provider = "postgresql"
 }
 
+enum MediaType {
+  MOVIE
+  TV
+}
+
 model User {
   id        String   @id @default(uuid())
   clerkId   String   @unique
   name      String
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model Collection {
+  id            String            @id @default(uuid())
+  slug          String            @unique
+  name          String
+  description   String
+  coverImageUrl String?
+  backdropUrl   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  media         CollectionMedia[]
+
+  @@index([name])
+}
+
+model MediaItem {
+  id            String            @id @default(uuid())
+  tmdbId        Int
+  mediaType     MediaType
+  title         String
+  overview      String?
+  posterPath    String?
+  backdropPath  String?
+  releaseDate   DateTime?
+  genres        String[]
+  runtime       Int?
+  seasonCount   Int?
+  episodeCount  Int?
+  voteAverage   Float?
+  voteCount     Int?
+  isAnimated    Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  collections   CollectionMedia[]
+
+  @@unique([tmdbId, mediaType])
+  @@index([mediaType])
+  @@index([releaseDate])
+  @@index([voteAverage])
+}
+
+model CollectionMedia {
+  collectionId String
+  mediaItemId  String
+  displayOrder Int      @default(0)
+  addedAt      DateTime @default(now())
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  mediaItem    MediaItem  @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, mediaItemId])
+  @@index([collectionId, displayOrder])
+  @@index([mediaItemId])
 }
