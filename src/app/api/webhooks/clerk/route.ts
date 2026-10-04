@@ -1,6 +1,7 @@
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import * as Sentry from "@sentry/nextjs";
 import type { NextRequest } from "next/server";
+import { upsertClerkUser } from "@/lib/auth/upsert-clerk-user";
 import { getPrismaClient } from "@/lib/prisma";
 
 function getUserName(user: {
@@ -55,17 +56,10 @@ export async function POST(request: NextRequest) {
       return new Response("Clerk user has no primary email", { status: 422 });
     }
 
-    await prisma.user.upsert({
-      where: { clerkId: event.data.id },
-      update: {
-        email,
-        name: getUserName(event.data),
-      },
-      create: {
-        clerkId: event.data.id,
-        email,
-        name: getUserName(event.data),
-      },
+    await upsertClerkUser({
+      clerkId: event.data.id,
+      email,
+      name: getUserName(event.data),
     });
   }
 
