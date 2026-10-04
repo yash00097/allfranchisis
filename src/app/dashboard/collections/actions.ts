@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { MediaType } from "@/generated/prisma/client";
-import { getPrismaClient } from "@/lib/prisma";
 import { requireCollectionManager } from "@/lib/auth/collection-manager";
+import { getPrismaClient } from "@/lib/prisma";
 import { getMovieDetails, getTvDetails, searchTmdb } from "@/lib/tmdb";
 
 function text(formData: FormData, field: string) {
@@ -197,13 +197,18 @@ export async function reorderCollectionMedia(formData: FormData) {
     mediaItemIds.some((id) => typeof id !== "string")
   )
     throw new Error("Invalid collection order.");
-  await getPrismaClient().$transaction(
+  const prisma = getPrismaClient();
+  await prisma.$transaction(
     mediaItemIds.map((mediaItemId, displayOrder) =>
-      getPrismaClient().collectionMedia.update({
+      prisma.collectionMedia.update({
         where: { collectionId_mediaItemId: { collectionId, mediaItemId } },
         data: { displayOrder },
       }),
     ),
+    {
+      maxWait: 10_000,
+      timeout: 20_000,
+    },
   );
   revalidatePath("/collections");
   revalidatePath("/dashboard/collections");
