@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   addMediaToCollection,
   createCollection,
@@ -289,6 +289,10 @@ function ManagedCollection({
   ) => Promise<void>;
 }) {
   const [media, setMedia] = useState(collection.media);
+  const initialMediaIds = collection.media.map((item) => item.id);
+  const mediaOrderChanged =
+    media.length !== initialMediaIds.length ||
+    media.some((item, index) => item.id !== initialMediaIds[index]);
   return (
     <Card>
       <CardHeader>
@@ -387,21 +391,11 @@ function ManagedCollection({
             </div>
           ))}
           {media.length ? (
-            <form
-              action={(formData) =>
-                handleMutation(reorderCollectionMedia, formData)
-              }
-            >
-              <input type="hidden" name="collectionId" value={collection.id} />
-              <input
-                type="hidden"
-                name="mediaItemIds"
-                value={JSON.stringify(media.map((item) => item.id))}
-              />
-              <Button type="submit" variant="outline" className="mt-2 w-fit">
-                Save media order
-              </Button>
-            </form>
+            <MediaOrderForm
+              collectionId={collection.id}
+              media={media}
+              changed={mediaOrderChanged}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">No media assigned.</p>
           )}
@@ -420,6 +414,61 @@ function ManagedCollection({
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function MediaOrderForm({
+  collectionId,
+  media,
+  changed,
+}: {
+  collectionId: string;
+  media: ManagerMedia[];
+  changed: boolean;
+}) {
+  const router = useRouter();
+  const [isSaving, startSaving] = useTransition();
+  const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
+
+  function saveOrder() {
+    const formData = new FormData();
+    formData.set("collectionId", collectionId);
+    formData.set("mediaItemIds", JSON.stringify(media.map((item) => item.id)));
+    setStatus("idle");
+    startSaving(async () => {
+      try {
+        await reorderCollectionMedia(formData);
+        setStatus("saved");
+        router.refresh();
+      } catch {
+        setStatus("error");
+      }
+    });
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-3">
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!changed || isSaving}
+        onClick={saveOrder}
+      >
+        {isSaving
+          ? "Saving..."
+          : status === "saved"
+            ? "Saved"
+            : "Save media order"}
+      </Button>
+      {status === "saved" ? (
+        <output className="text-sm text-emerald-600">Media order saved.</output>
+      ) : null}
+      {status === "error" ? (
+        <p className="text-sm text-destructive" role="alert">
+          Could not save the media order. Please try again.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
