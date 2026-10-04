@@ -5,11 +5,13 @@ import {
   SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { isCollectionManager } from "@/lib/auth/collection-manager";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +30,10 @@ export const metadata: Metadata = {
     "Explore curated collections of movies, television, and animation.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const { userId } = await auth();
+  const canManageCollections = userId ? await isCollectionManager() : false;
+
   return (
     <html
       lang="en"
@@ -36,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ClerkProvider appearance={{ theme: shadcn }}>
-          <header className="flex items-center justify-between px-6 py-4">
+          <header className="relative z-20 flex items-center justify-between px-6 py-4">
             <a className="flex items-center gap-2 font-semibold" href="/">
               <Image
                 src="/logo.svg"
@@ -62,7 +67,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </SignUpButton>
               </Show>
               <Show when="signed-in">
-                <a href="/dashboard">Dashboard</a>
+                {canManageCollections ? <a href="/dashboard">Dashboard</a> : null}
                 <UserButton />
               </Show>
             </nav>
