@@ -120,6 +120,7 @@ Design principles for Phase 2:
 - Server Components by default; Client Components only for interactivity.
 - Database access server-side only. Never import Prisma into client code.
 - Secure env handling: secrets stay server-side; never prefix with `NEXT_PUBLIC_` unless intentionally public.
+- Error handling: Sentry captures unhandled client, server, edge, request, and render errors. Report unexpected errors caught by application code with `Sentry.captureException(error)` before returning a fallback response; handle expected validation and user-facing failures locally without reporting them as incidents.
 - Consistent naming/formatting (Biome enforces this — run before committing).
 - Validate inputs at system boundaries; handle errors explicitly.
 - Follow current Next.js (App Router) and Prisma 7 best practices.

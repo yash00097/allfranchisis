@@ -1,4 +1,5 @@
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
+import * as Sentry from "@sentry/nextjs";
 import type { NextRequest } from "next/server";
 import { getPrismaClient } from "@/lib/prisma";
 
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
   try {
     event = await verifyWebhook(request);
   } catch (error) {
+    Sentry.captureException(error);
     console.error("Clerk webhook verification failed", error);
     return new Response("Invalid webhook signature", { status: 400 });
   }
