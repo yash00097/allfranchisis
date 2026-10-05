@@ -340,7 +340,7 @@
 
   @media (max-width: 640px) {
     .home-carousel__track {
-      --slide-width: 33.333333vw;
+      --slide-width: 100vw;
     }
 
     .home-carousel__slide {
