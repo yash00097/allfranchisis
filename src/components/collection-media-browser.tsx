@@ -39,7 +39,13 @@ type Media = {
   isAnimated: boolean;
 };
 
-export function CollectionMediaBrowser({ media }: { media: Media[] }) {
+export function CollectionMediaBrowser({
+  media,
+  collectionSlug,
+}: {
+  media: Media[];
+  collectionSlug: string;
+}) {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [sort, setSort] = useState<Sort>("ORDER");
   const visibleMedia = useMemo(() => {
@@ -126,7 +132,11 @@ export function CollectionMediaBrowser({ media }: { media: Media[] }) {
       {visibleMedia.length ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           {visibleMedia.map((item) => (
-            <MediaCard key={`${item.mediaType}-${item.tmdbId}`} media={item} />
+            <MediaCard
+              key={`${item.mediaType}-${item.tmdbId}`}
+              media={item}
+              collectionSlug={collectionSlug}
+            />
           ))}
         </div>
       ) : (

@@ -227,6 +227,7 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/` | `src/app/page.tsx` | Marketing hero landing — **not** the home page |
 | `/collections` | `src/app/collections/page.tsx` | **Default home** — public collection grid |
 | `/collections/[slug]` | `src/app/collections/[slug]/page.tsx` | One collection + its media |
+| `/collections/[slug]/media/[mediaType]/[tmdbId]` | `src/app/collections/[slug]/media/[mediaType]/[tmdbId]/page.tsx` | TMDB detail opened from a collection |
 | `/dashboard` | `src/app/dashboard/page.tsx` | Authenticated profile home |
 | `/dashboard/collections` | `src/app/dashboard/collections/page.tsx` | Owner-only manager workspace |
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
@@ -256,6 +257,8 @@ The app's default home page and the post-sign-in/sign-up destination. Header blo
 
 `force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), a 4xl → 6xl `font-heading` h1, and the description. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
 
+Cards inside a collection link to the **nested** media route (`/collections/<slug>/media/<type>/<id>`), not `/media/...`, so the media page can offer a back link to that collection. `MediaCard` takes an optional `collectionSlug` prop for this; `CollectionMediaBrowser` forwards it from the collection page.
+
 ### `CollectionMediaBrowser` (`"use client"`)
 
 Filter row — All / Movies / TV shows / Animated movies / Animated series — plus four icon sort buttons: collection order (default), alphabetical, release date, TMDB rating. Filters and sorts are client-side only. Grid is `sm:2 / lg:4 / xl:5` of `MediaCard`; a filter that matches nothing shows an `Empty`.
@@ -270,9 +273,13 @@ Filter row — All / Movies / TV shows / Animated movies / Animated series — p
 
 `force-dynamic` + `auth.protect()`. Non-managers get an "owner-only" notice with a link back to `/collections`; managers get `CollectionManager` (`"use client"`, the largest component at ~500 lines): a create-collection card (name, optional slug, description, cover/backdrop URLs), a TMDB search card that adds movies/TV to a selected collection, and a per-collection card listing current media with ordering controls and removal. Every mutation is a Server Action from `src/app/dashboard/collections/actions.ts`, each guarded by `requireCollectionManager()`.
 
-### Media detail (`/media/[mediaType]/[tmdbId]`)
+### Media detail (`/media/[mediaType]/[tmdbId]` and `/collections/[slug]/media/[mediaType]/[tmdbId]`)
 
-`revalidate = 3600` — TMDB-backed, not DB-backed. Renders backdrop hero, poster, type/TMDB-score badges, and metadata for a movie or TV show; TV additionally resolves `?season=` through `getTvSeasonDetails`. Invalid id or non-`movie`/`tv` segment → `notFound()`.
+Both routes are `revalidate = 3600`, TMDB-backed, and render the same shared component: `src/components/media-detail.tsx` (`MediaDetailView`). The page files only parse params and supply a back link, so media markup changes belong in the component, not the routes.
+
+`MediaDetailView` props: `mediaType`, `tmdbId`, optional `season` (from `?season=`), `basePath` (empty at the root route; `/collections/<slug>` inside a collection, used to keep season-switch links in the same context), `backHref`, and `backLabel`. Renders backdrop hero, poster, type/TMDB-score badges, and metadata; TV additionally resolves the season through `getTvSeasonDetails`. Invalid id or non-`movie`/`tv` segment → `notFound()`.
+
+The nested route additionally loads the collection by slug and 404s if it is missing, and uses its name for the back label. It does **not** verify that the requested media actually belongs to the collection.
 
 ### Theming
 

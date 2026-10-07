@@ -15,15 +15,18 @@ type MediaCardProps = {
     voteAverage: number | null;
     isAnimated: boolean;
   };
+  /** When set, links stay inside the collection so the back link returns there. */
+  collectionSlug?: string;
 };
 
-export function MediaCard({ media }: MediaCardProps) {
+export function MediaCard({ media, collectionSlug }: MediaCardProps) {
   const year = media.releaseDate?.getUTCFullYear();
   const type = media.mediaType === "MOVIE" ? "Movie" : "TV show";
+  const path = `/media/${media.mediaType.toLowerCase()}/${media.tmdbId}`;
 
   return (
     <Link
-      href={`/media/${media.mediaType.toLowerCase()}/${media.tmdbId}`}
+      href={collectionSlug ? `/collections/${collectionSlug}${path}` : path}
       className="group block"
     >
       <Card className="h-full overflow-hidden">

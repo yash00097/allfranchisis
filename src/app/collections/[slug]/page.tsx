@@ -74,7 +74,10 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       </section>
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-6 py-10">
         {media.length ? (
-          <CollectionMediaBrowser media={media} />
+          <CollectionMediaBrowser
+            media={media}
+            collectionSlug={collection.slug}
+          />
         ) : (
           <p className="border p-8 text-center text-muted-foreground">
             This collection has no media yet.
