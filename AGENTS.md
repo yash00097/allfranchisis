@@ -14,16 +14,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 1. Project Overview
 
-**AllFranchisis** is a centralized platform for exploring movies, TV series, books, and other media that belong to the same fictional universe or franchise.
+**AllFranchisis** is a centralized platform for exploring movies, TV series, and related media that belong to the same fictional universe or franchise.
 
-Purpose: let users navigate interconnected franchises and their individual media entries in one place. A franchise may contain movies, TV series (with seasons and episodes), books (standalone or in series), spin-offs, and related works.
+Purpose: let users navigate interconnected franchises and their individual media entries in one place. A franchise may contain movies, TV series (with seasons and episodes), spin-offs, and related works.
 
 Long-term goals:
-- Catalog media hierarchically: universe → franchise → series → season → episode / book → chapter.
+- Catalog media hierarchically: universe → franchise → series → season → episode.
 - Model relationships between media (sequels, prequels, spin-offs, adaptations, crossovers).
-- Independent ratings and reviews at **multiple levels**: individual episode, book, movie, TV series, and whole franchise.
+- Independent ratings and reviews at **multiple levels**: individual episode, movie, TV series, and whole franchise.
 - Search, filtering, and discovery across all entity types.
-- User collections, watchlists, and reading lists.
+- User collections and watchlists.
 
 ## 2. Technology Stack
 
@@ -43,6 +43,9 @@ Long-term goals:
 | DB driver | `@prisma/adapter-neon` | `^7.10.0` |
 | Database | PostgreSQL (hosted on Neon) | serverless Postgres |
 | Linter/Formatter | **Biome** (not ESLint/Prettier) | `2.4.2` |
+| Auth | Clerk (`@clerk/nextjs`, `@clerk/ui`) | `^7.9.10`, `^1.38.1` |
+| Error monitoring | Sentry (`@sentry/nextjs`) | `^11.4.0` |
+| External media data | TMDB REST API (server-only) | n/a |
 
 Notes / deviations from the original brief:
 - **Linting uses Biome, not ESLint.** `npm run lint` runs `biome check`; formatting runs `biome format --write`. Do not reintroduce ESLint.
@@ -56,12 +59,20 @@ Intended separation of concerns:
 ```
 src/
   app/            # Next.js App Router: routes, layouts, pages (Server Components by default)
+    api/webhooks/clerk/  # Clerk webhook route handler
+    dashboard/collections/actions.ts  # Server Actions (manager-gated mutations)
   components/
     ui/           # shadcn/Base UI primitives (button, card, dialog, table, ...)
   hooks/          # Reusable client hooks (e.g. use-mobile.ts)
-  lib/            # Framework-agnostic helpers (cn, future db client, validation)
+  lib/
+    prisma.ts     # Shared PrismaClient (Neon adapter) via getPrismaClient()
+    auth/         # Clerk → User sync, collection-manager gating
+    collections/  # Collection read queries
+    tmdb/         # Server-only TMDB service, image helpers, types
   generated/
     prisma/       # Generated Prisma Client (gitignored — never edit by hand)
+  proxy.ts        # Clerk middleware (Next 16: proxy.ts, NOT middleware.ts)
+  instrumentation.ts / instrumentation-client.ts / sentry.*.config.ts
 prisma/
   schema.prisma   # Single source of truth for the DB schema
   migrations/     # Committed migration history
@@ -71,19 +82,20 @@ prisma7.config.ts # Prisma 7 config: schema path, migrations path, datasource ur
 Layer boundaries:
 - **UI** (`app/`, `components/`) — presentation only. Server Components by default; `"use client"` only when interactivity requires it.
 - **Server-side logic** — data fetching, mutations, validation. Runs on the server (Server Components, Route Handlers, Server Actions). Never expose `DATABASE_URL` or Prisma to the browser.
-- **Database access** (`lib/`) — a single shared Prisma Client instance. Not yet created; add it in the phase that first needs DB reads/writes (see Roadmap). One instance per process; guard against hot-reload duplication in dev.
+- **Database access** (`lib/`) — a single shared Prisma Client exposed by `lib/prisma.ts` as `getPrismaClient()`, memoized on `globalThis` for dev hot-reload and wired to Neon through `@prisma/adapter-neon`. Never construct another client; every DB module imports `server-only`.
+- **External data** (`lib/tmdb/`) — server-only TMDB access (details, search, seasons, image URLs). All TMDB modules import `server-only`.
 - **Shared types** — colocate with the module that owns them; promote to a shared location only when reused across layers. Prefer Prisma-generated types.
 
 Path aliases: `@/*` → `./src/*` (see `tsconfig.json`).
 
 ## 4. Database Architecture
 
-The database layer currently contains the Phase 2 foundation. Do not add entities from later phases without explicit authorization.
+The database layer currently contains the Phase 2 foundation plus the Phase 3–4 entities. Do not add entities from later phases without explicit authorization.
 
 Implemented database surface:
-- PostgreSQL is configured through Prisma 7 and `prisma7.config.ts`.
-- `User` is the first persisted domain model with UUID identifiers, required names, unique email addresses, and creation timestamps.
-- Migration `20261002123421_init` creates the `User` table and its unique email index.
+- PostgreSQL is configured through Prisma 7 and `prisma7.config.ts`. The schema declares no `datasource url`; the CLI reads it from `prisma7.config.ts` and the runtime supplies it to the Neon adapter.
+- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum).
+- Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`).
 - Generated Prisma Client code lives under `src/generated/prisma` and must never be edited by hand.
 
 Core concepts:
@@ -91,9 +103,8 @@ Core concepts:
 - **Franchises** — top-level groupings.
 - **Movies** — standalone film entries.
 - **TV series** — with nested **seasons** and **episodes**.
-- **Books** — standalone, or grouped into **book series**.
 - **Media relationships** — directed/typed links between entries (sequel, prequel, spin-off, adaptation, crossover, same-continuity).
-- **Ratings & reviews** — must support **multiple levels independently**: an individual episode, a book, a movie, a whole TV series, and an entire franchise. Design the rating target polymorphically (e.g. a target type + target id) so any entity level can be rated without schema churn.
+- **Ratings & reviews** — must support **multiple levels independently**: an individual episode, a movie, a whole TV series, and an entire franchise. Design the rating target polymorphically (e.g. a target type + target id) so any entity level can be rated without schema churn.
 
 Design principles for Phase 2:
 - Model hierarchy explicitly (parent/child) rather than overloading one table.
@@ -104,14 +115,14 @@ Design principles for Phase 2:
 
 - **Phase 1 — Foundation (complete):** Next.js + TypeScript + Tailwind v4 + Prisma 7 foundation.
 - **Phase 2 — Database architecture and Prisma schema design (complete):** PostgreSQL datasource, Prisma schema, generated client, and initial `User` migration are in place.
-- **Phase 3 — Authentication and user profiles (CURRENT):** Build on the existing `User` model; do not redesign the database foundation without a concrete requirement.
-- **Phase 4:** Franchise and media catalog.
-- **Phase 5:** Media relationships and franchise hierarchy.
-- **Phase 6:** Individual ratings and reviews.
-- **Phase 7:** Search, filtering, and discovery.
-- **Phase 8:** User collections, watchlists, and reading lists.
-- **Phase 9:** Admin tools and content management.
-- **Phase 10:** Performance optimization, security, testing, and deployment.
+- **Phase 3 — Authentication and user profiles (complete):** Clerk auth (`src/proxy.ts` middleware), webhook + lazy user sync into `User`, manager-gated `/dashboard`, sign-in/sign-up routes, Sentry wiring.
+- **Phase 4 — Franchise and media catalog (partial):** TMDB-backed `MediaItem` cache, media detail pages at `/media/[mediaType]/[tmdbId]`, and an editor-curated `Collection`/`CollectionMedia` feature surfaced at `/collections` and `/dashboard/collections`. No franchise hierarchy yet.
+- **Phase 5:** Media relationships and franchise hierarchy — not started. No relationship model, no franchise entity.
+- **Phase 6:** Individual ratings and reviews — not started. Ratings shown in the UI are read-through TMDB scores, not stored user ratings.
+- **Phase 7:** Search, filtering, and discovery — not started as a route. Only client-side filtering exists (`CollectionBrowser` filters by name, `CollectionMediaBrowser` filters by type/animated and sorts by order/alpha/release/rating).
+- **Phase 8:** User collections, watchlists, and reading lists — not started. The existing `Collection`/`CollectionMedia` entity is a single editor-owned curated list, not per-user data; treat it as groundwork, not as a completed phase.
+- **Phase 9:** Admin tools and content management — early slice only. `/dashboard/collections` + `CollectionManager` cover collection CRUD, TMDB ingestion, and ordering for one hardcoded owner (`COLLECTION_MANAGER_CLERK_ID`). No general roles, moderation, or audit tooling.
+- **Phase 10:** Performance optimization, security, testing, and deployment — partial. Sentry is wired, images use Next `Image`/plain `img` with TMDB sizing, and TMDB reads are cached 1 hour; there is no test runner, no CI config, and no rate limiting.
 
 ## 6. Coding Standards
 
@@ -129,8 +140,9 @@ Design principles for Phase 2:
 ## 7. AI Agent Instructions
 
 - **Read this file before making project changes.**
-- **Respect the current phase.** Phase 3 is current. Do not implement features from later phases without explicit authorization.
-- **Update this file** whenever architectural decisions, dependencies, or completed phases materially change.
+- **`/collections` is the home page; `/` is a landing page.** Never point a new "home" link, redirect, or default route at `/`. See §11.
+- **Respect the current phase.** Phases 3–4 are complete/partial as described in §5 and §8. Do not implement features from later phases without explicit authorization.
+- **Update this file** whenever architectural decisions, dependencies, or completed phases materially change — and at the end of **every session in which project files were modified** if the change is material. A change is material when it adds or removes routes, pages, components, models, migrations, env vars, dependencies, or scripts, or when it moves a phase's completion state. Do not update it for pure formatting, comment, or refactor-only changes with no surface change; in that case say so explicitly instead of editing. Stale phase/status text is a bug: fix §5 and §8 in the same session that makes them stale.
 - **Do not silently replace selected technologies.** Confirm before swapping anything in §2.
 - **Verify compatibility** (versions, peer deps) before upgrading dependencies.
 - Avoid unnecessary abstractions, dependencies, and code.
@@ -147,53 +159,121 @@ Design principles for Phase 2:
 
 ## 8. Current Project Status
 
-**Phase 2 is complete. Phase 3 authentication and user profiles are next. No user-facing application features are implemented yet.**
+**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not.**
 
 Completed:
 - [x] Next.js 16 App Router scaffold with TypeScript (strict), Tailwind v4, `@/*` alias.
 - [x] Biome configured for lint + format (`lint` / `format` scripts).
 - [x] shadcn / Base UI component primitives added under `src/components/ui`.
 - [x] Prisma 7 installed with `prisma7.config.ts` (schema, migrations path, datasource url from env).
-- [x] Initial migration `20261002123421_init` creating a minimal `User` table.
+- [x] Migrations `20261002123421_init`, `20261002162635_add_clerk_identity`, `20261003170000_add_collections_media` applied to the schema.
 - [x] `.gitignore` excludes `.env*` and `/src/generated/prisma`.
-- [x] Phase 2 database foundation documented: PostgreSQL datasource, `User` model, initial migration, and generated Prisma Client.
+- [x] Shared Prisma Client singleton in `src/lib/prisma.ts` (Neon adapter).
+- [x] npm scripts for `typecheck` plus Prisma commands (`db:generate`, `db:validate`, `db:migrate`).
+- [x] Phase 3 auth: Clerk middleware (`src/proxy.ts`), sign-in/sign-up routes, Clerk webhook syncing `User`, `syncCurrentUser()` lazy sync, `COLLECTION_MANAGER_CLERK_ID`-gated dashboard actions.
+- [x] Sentry instrumentation (`src/instrumentation*.ts`, `src/sentry.*.config.ts`, `withSentryConfig`).
+- [x] Phase 4 partial: TMDB service layer, `MediaItem` cache, media detail pages, collections browse + manager UI with drag reorder.
 
-Pending foundation verification:
-- [ ] Install dependencies (`node_modules` not yet present).
-- [ ] Create `.env` with `DATABASE_URL` (Neon) — **not yet provided; live DB connectivity NOT verified**.
-- [ ] Add shared Prisma Client singleton in `src/lib`.
-- [ ] Add npm scripts for `typecheck` and Prisma commands (`db:generate`, `db:migrate`, `db:push`, `db:studio`).
-- [ ] Validate: `tsc`, `biome check`, `prisma validate`, `prisma generate` (see §Validation).
+Open items:
+- [ ] Live DB connectivity is not verified in this workspace; migrations are committed but not confirmed applied to the Neon instance. Run `npx prisma migrate status` with `DATABASE_URL` set to check.
+- [ ] No test runner is configured. Validation is `npm run typecheck`, `npm run lint`, `npm run build` (see §9).
+- [ ] TMDB credentials (`TMDB_API_Read_Access_Token` or `TMDB_API_Key`) must be present in `.env`; the service throws without them.
 
-**Current phase:** Phase 3 — Authentication and user profiles.
+**Current phase:** Phase 4 (partial) — catalog and collections. Next unstarted: Phase 5.
+
+Page-by-page UI inventory: see §11.
 
 ## 9. Validation & Testing
 
-Run these checks before claiming the foundation setup is verified. Do not fabricate results; clearly separate checks that passed from those needing Neon credentials.
+Run these checks before claiming work is verified. Do not fabricate results; clearly separate checks that passed from those needing Neon credentials.
 
 | Check | Command | Requires Neon? |
 |---|---|---|
 | Next.js builds/starts | `npm run dev` / `npm run build` | No |
-| Type check | `npx tsc --noEmit` | No |
-| Lint/format | `npm run lint` | No |
-| Prisma schema valid | `npx prisma validate` | No |
-| Prisma Client generated | `npx prisma generate` | No |
+| Type check | `npm run typecheck` (`tsc --noEmit`) | No |
+| Lint/format | `npm run lint` (`biome check`) | No |
+| Prisma schema valid | `npm run db:validate` (`prisma validate`) | No |
+| Prisma Client generated | `npm run db:generate` (`prisma generate`) | No |
 | Env wiring | `DATABASE_URL` referenced in `prisma7.config.ts` | Yes |
-| Live DB / migration applied | `npx prisma migrate deploy` | **Yes** |
+| Live DB / migrations applied | `npx prisma migrate status` / `npx prisma migrate deploy` | **Yes** |
 
-No live database connection has been verified — no `DATABASE_URL` supplied.
+No test runner is configured. Live database connectivity is not verified here — `DATABASE_URL` is required.
 
 ## 10. Command Reference
 
 ```bash
 npm install                      # install deps
-npx prisma generate              # generate Prisma Client (after install)
-npx prisma validate              # validate schema
-npx prisma migrate dev --name X  # create + apply a migration (needs DATABASE_URL)
+npm run typecheck                # tsc --noEmit
+npm run lint                     # biome check
+npm run format                   # biome format --write
+npm run db:generate              # prisma generate
+npm run db:validate              # prisma validate
+npm run db:migrate -- --name X   # prisma migrate dev (needs DATABASE_URL)
 npx prisma migrate deploy        # apply migrations in prod (needs DATABASE_URL)
+npx prisma migrate status        # check applied migrations (needs DATABASE_URL)
 npx prisma studio                # browse DB
 npm run dev                      # start dev server
 npm run build && npm start       # production build + serve
-npm run lint                     # biome check
-npx tsc --noEmit                 # type check
 ```
+
+## 11. Page & UI Map
+
+Every route is a Server Component. Client Components exist only where noted.
+
+**Routing rule — `/collections` is the app's home page.** `/` is a marketing landing page only and is not the default destination. Any "go home" link, post-auth redirect, nav default, or new entry point must target `/collections`, never `/`. Currently that means: the header logo/wordmark link in `src/app/layout.tsx`, and `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` in `.env` (`.env` is gitignored — the same values must be set in the deployment environment, or sign-in lands on `/` in production).
+
+| Route | File | Purpose |
+|---|---|---|
+| `/` | `src/app/page.tsx` | Marketing hero landing — **not** the home page |
+| `/collections` | `src/app/collections/page.tsx` | **Default home** — public collection grid |
+| `/collections/[slug]` | `src/app/collections/[slug]/page.tsx` | One collection + its media |
+| `/dashboard` | `src/app/dashboard/page.tsx` | Authenticated profile home |
+| `/dashboard/collections` | `src/app/dashboard/collections/page.tsx` | Owner-only manager workspace |
+| `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
+| `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
+
+Shared chrome lives in `src/app/layout.tsx`: logo + wordmark (links to `/collections`, the home page), `Collections` link, `ThemeToggle`, and Clerk `Show`/`SignInButton`/`SignUpButton`/`UserButton`. The dashboard link renders only for the configured manager. Because the logo is the only link to `/`, the landing page is reachable by direct URL only. The hero subtracts a hardcoded `73px` header height (`min-h-[calc(100dvh-73px)]`) — changing header padding breaks that offset.
+
+### Home (`/`)
+
+Marketing landing page, reachable by direct URL only — the default home is `/collections`. Full-height hero over a decorative background carousel.
+
+- `HomeCarousel` (`"use client"`) is `aria-hidden` — purely visual, no controls, no dots. It autoplays every 5s (`AUTOPLAY_DELAY`), sliding 4 images listed in the `franchiseImages` array (`public/franchise/1..4.png`). The track is tripled (last + list + list) to fake infinite scroll and snaps back on `transitionEnd`.
+- It honors `prefers-reduced-motion` by disabling autoplay, and slide width is responsive: `68vw` mobile, `48vw` ≤1024px, `34vw` wider.
+- **All carousel styling is in `src/app/globals.css` under the `.home-carousel*` selectors**, not in the component — restyling the hero means editing both files. `.home-carousel__overlay` (plus a `.dark` variant) darkens the images for text contrast.
+- Foreground content is a `max-w-7xl` column: square primary-colored `Library` icon tile, uppercase `AllFranchisis` kicker, `font-heading` h1 "Find the stories that belong together." (5xl → 7xl), muted lede paragraph, and a primary `buttonVariants` link "Explore collections" with an `ArrowRight`.
+
+### Collections (`/collections`)
+
+The app's default home page and the post-sign-in/sign-up destination. Header block (kicker "Explore", `font-heading` h1 "Collections", lede) then `CollectionBrowser` (`"use client"`).
+
+- A max-w-md, icon-prefixed search input filters collections by name in memory — there is no server-side search.
+- Results render as a `sm:2 / lg:3` grid of `CollectionCard`.
+- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, and a `line-clamp-3` description. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`.
+- Empty states use the shadcn `Empty` primitive: no collections at all vs. "No collections found" when the filter misses.
+
+### Collection detail (`/collections/[slug]`)
+
+`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), a 4xl → 6xl `font-heading` h1, and the description. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
+
+### `CollectionMediaBrowser` (`"use client"`)
+
+Filter row — All / Movies / TV shows / Animated movies / Animated series — plus four icon sort buttons: collection order (default), alphabetical, release date, TMDB rating. Filters and sorts are client-side only. Grid is `sm:2 / lg:4 / xl:5` of `MediaCard`; a filter that matches nothing shows an `Empty`.
+
+`MediaCard`: 2:3 poster on muted background (`object-contain`), `Movie`/`TV show` badge plus an `Animated` outline badge, `line-clamp-2` title, footer line with year and `TMDB n.n`, and a `line-clamp-3` overview. Links to `/media/{movie|tv}/{tmdbId}`.
+
+### Dashboard (`/dashboard`)
+
+`force-dynamic` + `auth.protect()`. Calls `syncCurrentUser()` (the lazy half of Clerk → `User` sync), greets the user by name, and shows a "Manage collections" link only when `isCollectionManager()` is true.
+
+### Manager workspace (`/dashboard/collections`)
+
+`force-dynamic` + `auth.protect()`. Non-managers get an "owner-only" notice with a link back to `/collections`; managers get `CollectionManager` (`"use client"`, the largest component at ~500 lines): a create-collection card (name, optional slug, description, cover/backdrop URLs), a TMDB search card that adds movies/TV to a selected collection, and a per-collection card listing current media with ordering controls and removal. Every mutation is a Server Action from `src/app/dashboard/collections/actions.ts`, each guarded by `requireCollectionManager()`.
+
+### Media detail (`/media/[mediaType]/[tmdbId]`)
+
+`revalidate = 3600` — TMDB-backed, not DB-backed. Renders backdrop hero, poster, type/TMDB-score badges, and metadata for a movie or TV show; TV additionally resolves `?season=` through `getTvSeasonDetails`. Invalid id or non-`movie`/`tv` segment → `notFound()`.
+
+### Theming
+
+Custom "DOOM 64" OKLCH palette in `src/app/globals.css`, defined for light (`:root`) and dark (`.dark`) with a `@theme inline` block mapping the tokens to Tailwind color utilities. Dark mode is class-based and toggled by `src/components/theme-toggle.tsx`. Display headings rely on the `font-heading` utility.

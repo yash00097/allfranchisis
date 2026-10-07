@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ClerkProvider appearance={{ theme: shadcn }}>
           <header className="relative z-20 flex items-center justify-between px-6 py-4">
-            <a className="flex items-center gap-2 font-semibold" href="/">
+            <a className="flex items-center gap-2 font-semibold" href="/collections">
               <Image
                 src="/logo.svg"
                 alt=""
