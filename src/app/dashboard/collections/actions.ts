@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { MediaType } from "@/generated/prisma/client";
 import { requireCollectionManager } from "@/lib/auth/collection-manager";
+import { sanitizeCollectionGenres } from "@/lib/collections/genres";
 import { getPrismaClient } from "@/lib/prisma";
 import { getMovieDetails, getTvDetails, searchTmdb } from "@/lib/tmdb";
 
@@ -22,6 +23,10 @@ function dateOrNull(value: string | undefined) {
   return value ? new Date(`${value}T00:00:00.000Z`) : null;
 }
 
+function genresFromForm(formData: FormData) {
+  return sanitizeCollectionGenres(formData.getAll("genres").map(String));
+}
+
 export async function createCollection(formData: FormData) {
   await requireCollectionManager();
   const name = text(formData, "name");
@@ -35,6 +40,7 @@ export async function createCollection(formData: FormData) {
       name,
       slug,
       description,
+      genres: genresFromForm(formData),
       coverImageUrl: text(formData, "coverImageUrl") || null,
       backdropUrl: text(formData, "backdropUrl") || null,
     },
@@ -58,6 +64,7 @@ export async function updateCollection(formData: FormData) {
       name,
       slug,
       description,
+      genres: genresFromForm(formData),
       coverImageUrl: text(formData, "coverImageUrl") || null,
       backdropUrl: text(formData, "backdropUrl") || null,
     },

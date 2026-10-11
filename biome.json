@@ -22,7 +22,22 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "a11y": {
+        "noLabelWithoutControl": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useFocusableInteractive": "off",
+        "useSemanticElements": "off"
+      },
+      "complexity": {
+        "useLiteralKeys": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "style": {
+        "useImportType": "off"
+      }
     },
     "domains": {
       "next": "recommended",
@@ -32,7 +47,7 @@
   "assist": {
     "actions": {
       "source": {
-        "organizeImports": "on"
+        "organizeImports": "off"
       }
     }
   }

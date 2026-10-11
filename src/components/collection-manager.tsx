@@ -11,6 +11,7 @@ import {
   searchCollectionMedia,
   updateCollection,
 } from "@/app/dashboard/collections/actions";
+import { GenreMultiselect } from "@/components/genre-multiselect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ type ManagerCollection = {
   name: string;
   slug: string;
   description: string;
+  genres: string[];
   coverImageUrl: string | null;
   backdropUrl: string | null;
   media: ManagerMedia[];
@@ -144,6 +146,11 @@ export function CollectionManager({
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" name="description" required />
             </label>
+            <GenreMultiselect
+              key={`new-${collections.length}`}
+              id="genres-new"
+              className="md:col-span-2"
+            />
             <Button type="submit" className="w-fit">
               Create collection
             </Button>
@@ -259,7 +266,7 @@ export function CollectionManager({
 
       {activeCollection ? (
         <ManagedCollection
-          key={`${activeCollection.id}-${activeCollection.name}-${activeCollection.slug}-${activeCollection.media.map((item) => item.id).join(",")}`}
+          key={`${activeCollection.id}-${activeCollection.name}-${activeCollection.slug}-${(activeCollection.genres ?? []).join(",")}-${activeCollection.media.map((item) => item.id).join(",")}`}
           collection={activeCollection}
           handleMutation={handleMutation}
         />
@@ -335,6 +342,11 @@ function ManagedCollection({
               required
             />
           </label>
+          <GenreMultiselect
+            id={`genres-${collection.id}`}
+            defaultValue={collection.genres}
+            className="md:col-span-2"
+          />
           <Button type="submit" className="w-fit">
             Save changes
           </Button>

@@ -42,7 +42,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ClerkProvider appearance={{ theme: shadcn }}>
           <header className="relative z-20 flex items-center justify-between px-6 py-4">
-            <a className="flex items-center gap-2 font-semibold" href="/collections">
+            <a
+              className="flex items-center gap-2 font-semibold"
+              href="/collections"
+            >
               <Image
                 src="/logo.svg"
                 alt=""
@@ -67,7 +70,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 </SignUpButton>
               </Show>
               <Show when="signed-in">
-                {canManageCollections ? <a href="/dashboard">Dashboard</a> : null}
+                {canManageCollections ? (
+                  <a href="/dashboard">Dashboard</a>
+                ) : null}
                 <UserButton />
               </Show>
             </nav>

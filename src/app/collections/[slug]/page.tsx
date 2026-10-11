@@ -2,6 +2,7 @@ import { ArrowLeft, Film, Tv } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CollectionMediaBrowser } from "@/components/collection-media-browser";
+import { GenreBadges } from "@/components/genre-badges";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCollectionBySlug } from "@/lib/collections";
@@ -63,6 +64,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
                 <Tv /> {shows} shows
               </Badge>
             </div>
+            <GenreBadges genres={collection.genres} />
             <h1 className="font-heading text-4xl font-bold tracking-tight lg:text-6xl">
               {collection.name}
             </h1>

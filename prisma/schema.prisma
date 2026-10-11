@@ -30,6 +30,7 @@ model Collection {
   slug          String            @unique
   name          String
   description   String
+  genres        String[]          @default([])
   coverImageUrl String?
   backdropUrl   String?
   createdAt     DateTime          @default(now())

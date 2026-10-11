@@ -94,8 +94,8 @@ The database layer currently contains the Phase 2 foundation plus the Phase 3–
 
 Implemented database surface:
 - PostgreSQL is configured through Prisma 7 and `prisma7.config.ts`. The schema declares no `datasource url`; the CLI reads it from `prisma7.config.ts` and the runtime supplies it to the Neon adapter.
-- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum).
-- Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`).
+- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`).
+- Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, `genres String[]` drawn from the fixed TMDB genre list in `src/lib/collections/genres.ts`, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`).
 - Generated Prisma Client code lives under `src/generated/prisma` and must never be edited by hand.
 
 Core concepts:
@@ -250,12 +250,12 @@ The app's default home page and the post-sign-in/sign-up destination. Header blo
 
 - A max-w-md, icon-prefixed search input filters collections by name in memory — there is no server-side search.
 - Results render as a `sm:2 / lg:3` grid of `CollectionCard`.
-- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, and a `line-clamp-3` description. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`.
+- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.
 - Empty states use the shadcn `Empty` primitive: no collections at all vs. "No collections found" when the filter misses.
 
 ### Collection detail (`/collections/[slug]`)
 
-`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), a 4xl → 6xl `font-heading` h1, and the description. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
+`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), the collection's genre badges, a 4xl → 6xl `font-heading` h1, and the description. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
 
 Cards inside a collection link to the **nested** media route (`/collections/<slug>/media/<type>/<id>`), not `/media/...`, so the media page can offer a back link to that collection. `MediaCard` takes an optional `collectionSlug` prop for this; `CollectionMediaBrowser` forwards it from the collection page.
 
@@ -272,6 +272,8 @@ Filter row — All / Movies / TV shows / Animated movies / Animated series — p
 ### Manager workspace (`/dashboard/collections`)
 
 `force-dynamic` + `auth.protect()`. Non-managers get an "owner-only" notice with a link back to `/collections`; managers get `CollectionManager` (`"use client"`, the largest component at ~500 lines): a create-collection card (name, optional slug, description, cover/backdrop URLs), a TMDB search card that adds movies/TV to a selected collection, and a per-collection card listing current media with ordering controls and removal. Every mutation is a Server Action from `src/app/dashboard/collections/actions.ts`, each guarded by `requireCollectionManager()`.
+
+The create and edit forms both include a `GenreMultiselect` dropdown (`src/components/genre-multiselect.tsx`) that submits one `genres` entry per ticked genre; the actions sanitise that list against the fixed TMDB vocabulary in `src/lib/collections/genres.ts`, which drops unknown values and canonicalises the order.
 
 ### Media detail (`/media/[mediaType]/[tmdbId]` and `/collections/[slug]/media/[mediaType]/[tmdbId]`)
 

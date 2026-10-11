@@ -52,6 +52,7 @@ export default async function ManageCollectionsPage() {
           name: collection.name,
           slug: collection.slug,
           description: collection.description,
+          genres: collection.genres ?? [],
           coverImageUrl: collection.coverImageUrl,
           backdropUrl: collection.backdropUrl,
           media: collection.media.map(({ mediaItem }) => ({

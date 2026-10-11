@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GenreBadges } from "@/components/genre-badges";
 import { Card, CardContent } from "@/components/ui/card";
 import { tmdbImage } from "@/lib/tmdb/images";
 
@@ -7,6 +8,7 @@ type CollectionCardProps = {
     slug: string;
     name: string;
     description: string;
+    genres: string[];
     coverImageUrl: string | null;
     _count: { media: number };
   };
@@ -42,6 +44,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
               {collection._count.media} items
             </span>
           </div>
+          <GenreBadges genres={collection.genres} />
           <p className="line-clamp-3 text-sm text-muted-foreground">
             {collection.description}
           </p>

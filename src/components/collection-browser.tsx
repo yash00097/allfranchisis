@@ -16,6 +16,7 @@ type Collection = {
   slug: string;
   name: string;
   description: string;
+  genres: string[];
   coverImageUrl: string | null;
   _count: { media: number };
 };
