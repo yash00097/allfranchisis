@@ -21,19 +21,23 @@ export function GenreMultiselect({
   name = "genres",
   id,
   defaultValue = [],
+  onValueChange,
   className,
 }: {
   name?: string;
   id: string;
   defaultValue?: string[];
+  onValueChange?: (genres: string[]) => void;
   className?: string;
 }) {
   const [selected, setSelected] = useState(defaultValue);
 
   function toggle(genre: string, checked: boolean) {
-    setSelected((current) =>
-      checked ? [...current, genre] : current.filter((item) => item !== genre),
-    );
+    const next = checked
+      ? [...selected, genre]
+      : selected.filter((item) => item !== genre);
+    setSelected(next);
+    onValueChange?.(next);
   }
 
   return (

@@ -300,6 +300,26 @@ function ManagedCollection({
   const mediaOrderChanged =
     media.length !== initialMediaIds.length ||
     media.some((item, index) => item.id !== initialMediaIds[index]);
+
+  const initialDraft = {
+    name: collection.name,
+    slug: collection.slug,
+    coverImageUrl: collection.coverImageUrl ?? "",
+    backdropUrl: collection.backdropUrl ?? "",
+    description: collection.description,
+  };
+  const [draft, setDraft] = useState(initialDraft);
+  const [genres, setGenres] = useState<string[]>(collection.genres ?? []);
+  const setDraftField = (key: keyof typeof initialDraft) => (value: string) =>
+    setDraft((current) => ({ ...current, [key]: value }));
+  const collectionChanged =
+    draft.name !== initialDraft.name ||
+    draft.slug !== initialDraft.slug ||
+    draft.coverImageUrl !== initialDraft.coverImageUrl ||
+    draft.backdropUrl !== initialDraft.backdropUrl ||
+    draft.description !== initialDraft.description ||
+    [...genres].sort().join("|") !==
+      [...(collection.genres ?? [])].sort().join("|");
   return (
     <Card>
       <CardHeader>
@@ -314,40 +334,48 @@ function ManagedCollection({
           <Field
             label="Name"
             name="name"
-            defaultValue={collection.name}
+            value={draft.name}
+            onChange={setDraftField("name")}
             required
           />
           <Field
             label="Slug"
             name="slug"
-            defaultValue={collection.slug}
+            value={draft.slug}
+            onChange={setDraftField("slug")}
             required
           />
           <Field
             label="Cover image"
             name="coverImageUrl"
-            defaultValue={collection.coverImageUrl ?? ""}
+            value={draft.coverImageUrl}
+            onChange={setDraftField("coverImageUrl")}
           />
           <Field
             label="Backdrop image"
             name="backdropUrl"
-            defaultValue={collection.backdropUrl ?? ""}
+            value={draft.backdropUrl}
+            onChange={setDraftField("backdropUrl")}
           />
           <label className="grid gap-2 md:col-span-2">
             <Label htmlFor={`description-${collection.id}`}>Description</Label>
             <Textarea
               id={`description-${collection.id}`}
               name="description"
-              defaultValue={collection.description}
+              value={draft.description}
+              onChange={(event) =>
+                setDraftField("description")(event.target.value)
+              }
               required
             />
           </label>
           <GenreMultiselect
             id={`genres-${collection.id}`}
             defaultValue={collection.genres}
+            onValueChange={setGenres}
             className="md:col-span-2"
           />
-          <Button type="submit" className="w-fit">
+          <Button type="submit" className="w-fit" disabled={!collectionChanged}>
             Save changes
           </Button>
         </form>
@@ -488,12 +516,16 @@ function Field({
   label,
   name,
   defaultValue,
+  value,
+  onChange,
   placeholder,
   required,
 }: {
   label: string;
   name: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
   placeholder?: string;
   required?: boolean;
 }) {
@@ -503,7 +535,11 @@ function Field({
       <Input
         id={`${name}-${defaultValue ?? "new"}`}
         name={name}
-        defaultValue={defaultValue}
+        value={onChange ? value : undefined}
+        defaultValue={onChange ? undefined : defaultValue}
+        onChange={
+          onChange ? (event) => onChange(event.target.value) : undefined
+        }
         placeholder={placeholder}
         required={required}
       />
