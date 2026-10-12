@@ -172,7 +172,7 @@ Completed:
 - [x] npm scripts for `typecheck` plus Prisma commands (`db:generate`, `db:validate`, `db:migrate`).
 - [x] Phase 3 auth: Clerk middleware (`src/proxy.ts`), sign-in/sign-up routes, Clerk webhook syncing `User`, `syncCurrentUser()` lazy sync, `COLLECTION_MANAGER_CLERK_ID`-gated dashboard actions.
 - [x] Sentry instrumentation (`src/instrumentation*.ts`, `src/sentry.*.config.ts`, `withSentryConfig`).
-- [x] Phase 4 partial: TMDB service layer, `MediaItem` cache, media detail pages, collections browse + manager UI with drag reorder.
+- [x] Phase 4 partial: TMDB service layer, `MediaItem` cache, media detail pages, collections browse + manager UI with drag reorder, and URL-driven genre filtering on `/collections`.
 
 Open items:
 - [ ] Live DB connectivity is not verified in this workspace; migrations are committed but not confirmed applied to the Neon instance. Run `npx prisma migrate status` with `DATABASE_URL` set to check.
@@ -246,8 +246,10 @@ Marketing landing page, reachable by direct URL only — the default home is `/c
 
 ### Collections (`/collections`)
 
-The app's default home page and the post-sign-in/sign-up destination. Header block (kicker "Explore", `font-heading` h1 "Collections", lede) then `CollectionBrowser` (`"use client"`).
+The app's default home page and the post-sign-in/sign-up destination. Header block (kicker "Explore", `font-heading` h1 "Collections", lede), then `GenreFilterBar`, then `CollectionBrowser` (`"use client"`).
 
+- `GenreFilterBar` (Server Component, `src/components/genre-filter-bar.tsx`) sits directly below the header block and above the grid: a single-line horizontally scrolling row of bordered chips, one per genre in use plus an "All" chip. Chips are `<Link>`s, so selecting one navigates to `/collections?genre=<Genre>` and re-runs the Prisma query server-side — genre filtering is URL-driven, not client state. The selected chip is solid `primary` (red), the rest are `primary`-outlined; all radii are 0 via the sharp-edge theme. The chip list comes from `listCollectionGenres()` (genres actually in use, in `COLLECTION_GENRES` order), not from the filtered result, so the bar survives a zero-result genre.
+- Invalid or unknown `?genre=` values (including repeated params) fall back to "All" via `isCollectionGenre()`. A genre with no matches shows an `Empty` with a "Show all collections" link. The name search input in `CollectionBrowser` remains client-side and now narrows within the genre-filtered set.
 - A max-w-md, icon-prefixed search input filters collections by name in memory — there is no server-side search.
 - Results render as a `sm:2 / lg:3` grid of `CollectionCard`.
 - `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.

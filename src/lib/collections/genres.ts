@@ -4,7 +4,6 @@ export const COLLECTION_GENRES = [
   "Animation",
   "Comedy",
   "Crime",
-  "Documentary",
   "Drama",
   "Family",
   "Fantasy",
@@ -25,4 +24,11 @@ export type CollectionGenre = (typeof COLLECTION_GENRES)[number];
 export function sanitizeCollectionGenres(values: string[]): CollectionGenre[] {
   const submitted = new Set(values);
   return COLLECTION_GENRES.filter((genre) => submitted.has(genre));
+}
+
+export function isCollectionGenre(value: unknown): value is CollectionGenre {
+  return (
+    typeof value === "string" &&
+    (COLLECTION_GENRES as readonly string[]).includes(value)
+  );
 }
