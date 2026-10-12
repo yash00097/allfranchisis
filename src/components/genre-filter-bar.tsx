@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "cn";
+import { AutoScrollRow } from "@/components/auto-scroll-row";
 import type { CollectionGenre } from "@/lib/collections/genres";
 
 const chipClass =
@@ -16,7 +17,7 @@ export function GenreFilterBar({
 
   return (
     <nav aria-label="Filter collections by genre" className="-mx-6 px-6">
-      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+      <AutoScrollRow>
         <GenreChip
           href="/collections"
           label="All"
@@ -30,7 +31,7 @@ export function GenreFilterBar({
             active={activeGenre === genre}
           />
         ))}
-      </div>
+      </AutoScrollRow>
     </nav>
   );
 }
