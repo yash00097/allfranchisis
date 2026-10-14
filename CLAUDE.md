@@ -28,16 +28,18 @@ No test runner is configured. Validation = `npm run typecheck` + `npm run lint` 
 
 Next.js 16 App Router, React Server Components by default. Request flow:
 
-- `src/proxy.ts` — Clerk middleware. Next 16 renamed middleware to **proxy**; do not create `middleware.ts`. Protects `/dashboard(.*)`, allows `/api/webhooks(.*)`, matcher also covers `/__clerk/(.*)`.
+- `src/proxy.ts` — Clerk middleware. Next 16 renamed middleware to **proxy**; do not create `middleware.ts`. Protects `/dashboard(.*)`, `/watching`, `/watched`; allows `/api/webhooks(.*)`; matcher also covers `/__clerk/(.*)`.
 - `src/app/**/page.tsx` — Server Components read through `src/lib/*` and render `src/components/*`. DB-backed pages set `export const dynamic = "force-dynamic"`; TMDB-backed media pages set `export const revalidate = 3600`.
 - `src/app/dashboard/collections/actions.ts` — all mutations are Server Actions (`"use server"`), each starting with `requireCollectionManager()`, ending with `revalidatePath(...)`.
-- Client Components (`"use client"`) exist only for interaction: `collection-browser`, `collection-manager`, `collection-media-browser`, `home-carousel`, `theme-toggle`. They receive serialized props and call Server Actions.
+- `src/app/collections/actions.ts` — `setCollectionStatus` Server Action (user-gated via `requireCurrentUser()`, **not** manager-gated): writes/clears `UserCollectionStatus` and revalidates `/collections`, the detail route, `/watching`, `/watched`.
+- Client Components (`"use client"`) exist only for interaction: `collection-browser`, `collection-manager`, `collection-media-browser`, `home-carousel`, `theme-toggle`, `auto-scroll-row`, `genre-multiselect`. They receive serialized props and call Server Actions.
 
 Layers under `src/lib/` (each DB/auth/TMDB module imports `server-only`):
 
 - `prisma.ts` — `getPrismaClient()`, the single lazily-created `PrismaClient` with the `PrismaNeon` adapter, memoized on `globalThis` for dev hot-reload. Call it; never construct a client elsewhere.
-- `auth/` — `upsertClerkUser` (idempotent, resolves clerkId/email collisions in a transaction), `syncCurrentUser` (lazy sync from `currentUser()`), `collection-manager` (`requireCollectionManager` / `isCollectionManager`).
+- `auth/` — `upsertClerkUser` (idempotent, resolves clerkId/email collisions in a transaction), `syncCurrentUser` (lazy sync from `currentUser()`), `collection-manager` (`requireCollectionManager` / `isCollectionManager`), `current-user` (`getCurrentUser` / `requireCurrentUser` — the signed-in `User` row, lazily synced).
 - `collections/queries.ts` — read queries (`listCollections`, `getCollectionBySlug`, ...), re-exported from `lib/collections`.
+- `watch-status/queries.ts` — read queries for `UserCollectionStatus` (`getCollectionStatus`, `getCollectionStatuses`, `listUserCollectionsByStatus`); writes go through `setCollectionStatus`.
 - `tmdb/` — `service.ts` (fetch wrapper: 8s timeout, one retry on network error, `revalidate: 3600`), `images.ts` (`tmdbImage(path, size)` → full URL or `null`), `types.ts`.
 
 `src/app/api/webhooks/clerk/route.ts` verifies the Clerk webhook and upserts/deletes the local `User`. Auth state is therefore synced two ways: eagerly by webhook, lazily by `syncCurrentUser()` on the dashboard.
@@ -49,6 +51,7 @@ Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 
 - `User` — `clerkId` and `email` both unique; maps Clerk identity to a local row.
 - `MediaItem` — cached TMDB metadata keyed by `@@unique([tmdbId, mediaType])`; `mediaType` enum `MOVIE | TV`.
 - `Collection` / `CollectionMedia` — join carries `displayOrder`; reordering rewrites the whole set in one `$transaction`.
+- `UserCollectionStatus` — per-user Watching/Watched state for a whole `Collection` (composite PK, `status` enum `WATCHING | WATCHED`, cascade on both FKs). Written by `setCollectionStatus` in `src/app/collections/actions.ts`; read by `src/lib/watch-status/queries.ts`. Status is collection-level, not per `MediaItem`.
 
 ## Environment
 

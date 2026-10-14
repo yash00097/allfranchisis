@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { GenreBadges } from "@/components/genre-badges";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { tmdbImage } from "@/lib/tmdb/images";
+import { WATCH_STATUS_LABELS } from "@/lib/watch-status/types";
 
 type CollectionCardProps = {
   collection: {
@@ -11,6 +13,7 @@ type CollectionCardProps = {
     genres: string[];
     coverImageUrl: string | null;
     _count: { media: number };
+    status?: "WATCHING" | "WATCHED" | null;
   };
 };
 
@@ -40,6 +43,11 @@ export function CollectionCard({ collection }: CollectionCardProps) {
             <h2 className="font-heading text-xl font-semibold">
               {collection.name}
             </h2>
+            {collection.status ? (
+              <Badge variant="secondary" className="shrink-0">
+                {WATCH_STATUS_LABELS[collection.status]}
+              </Badge>
+            ) : null}
             <span className="shrink-0 text-xs text-muted-foreground">
               {collection._count.media} items
             </span>

@@ -19,12 +19,17 @@ type Collection = {
   genres: string[];
   coverImageUrl: string | null;
   _count: { media: number };
+  status?: "WATCHING" | "WATCHED" | null;
 };
 
 export function CollectionBrowser({
   collections,
+  emptyTitle = "No collections found",
+  emptyDescription = "Try a different collection name.",
 }: {
   collections: Collection[];
+  emptyTitle?: string;
+  emptyDescription?: string;
 }) {
   const [query, setQuery] = useState("");
   const filteredCollections = useMemo(() => {
@@ -60,10 +65,8 @@ export function CollectionBrowser({
             <EmptyMedia variant="icon">
               <Search />
             </EmptyMedia>
-            <EmptyTitle>No collections found</EmptyTitle>
-            <EmptyDescription>
-              Try a different collection name.
-            </EmptyDescription>
+            <EmptyTitle>{emptyTitle}</EmptyTitle>
+            <EmptyDescription>{emptyDescription}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       )}

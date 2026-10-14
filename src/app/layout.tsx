@@ -70,6 +70,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 </SignUpButton>
               </Show>
               <Show when="signed-in">
+                <a href="/watching">Watching</a>
+                <a href="/watched">Watched</a>
                 {canManageCollections ? (
                   <a href="/dashboard">Dashboard</a>
                 ) : null}

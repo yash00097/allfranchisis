@@ -90,12 +90,12 @@ Path aliases: `@/*` → `./src/*` (see `tsconfig.json`).
 
 ## 4. Database Architecture
 
-The database layer currently contains the Phase 2 foundation plus the Phase 3–4 entities. Do not add entities from later phases without explicit authorization.
+The database layer currently contains the Phase 2 foundation, the Phase 3–4 catalog entities, and the Phase 8 per-user watch-status slice. Do not add entities from later phases without explicit authorization.
 
 Implemented database surface:
 - PostgreSQL is configured through Prisma 7 and `prisma7.config.ts`. The schema declares no `datasource url`; the CLI reads it from `prisma7.config.ts` and the runtime supplies it to the Neon adapter.
-- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`).
-- Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, `genres String[]` drawn from the fixed TMDB genre list in `src/lib/collections/genres.ts`, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`).
+- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`), `20261013120000_add_user_collection_status` (`WatchStatus` enum, `UserCollectionStatus`).
+- Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, `genres String[]` drawn from the fixed TMDB genre list in `src/lib/collections/genres.ts`, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`), `UserCollectionStatus` (per-user status for a whole `Collection`, composite PK `(userId, collectionId)`, `status WatchStatus { WATCHING | WATCHED }`, both FKs cascade — explicitly **not** per `MediaItem`).
 - Generated Prisma Client code lives under `src/generated/prisma` and must never be edited by hand.
 
 Core concepts:
@@ -120,7 +120,7 @@ Design principles for Phase 2:
 - **Phase 5:** Media relationships and franchise hierarchy — not started. No relationship model, no franchise entity.
 - **Phase 6:** Individual ratings and reviews — not started. Ratings shown in the UI are read-through TMDB scores, not stored user ratings.
 - **Phase 7:** Search, filtering, and discovery — not started as a route. Only client-side filtering exists (`CollectionBrowser` filters by name, `CollectionMediaBrowser` filters by type/animated and sorts by order/alpha/release/rating).
-- **Phase 8:** User collections, watchlists, and reading lists — not started. The existing `Collection`/`CollectionMedia` entity is a single editor-owned curated list, not per-user data; treat it as groundwork, not as a completed phase.
+- **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `Watching`/`Watched` status over collections now exists (`UserCollectionStatus`, `/watching`, `/watched`); per-user collections and reading lists do not. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
 - **Phase 9:** Admin tools and content management — early slice only. `/dashboard/collections` + `CollectionManager` cover collection CRUD, TMDB ingestion, and ordering for one hardcoded owner (`COLLECTION_MANAGER_CLERK_ID`). No general roles, moderation, or audit tooling.
 - **Phase 10:** Performance optimization, security, testing, and deployment — partial. Sentry is wired, images use Next `Image`/plain `img` with TMDB sizing, and TMDB reads are cached 1 hour; there is no test runner, no CI config, and no rate limiting.
 
@@ -159,27 +159,28 @@ Design principles for Phase 2:
 
 ## 8. Current Project Status
 
-**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not.**
+**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not. Phase 8 is partial: per-user Watching/Watched status over collections exists; per-user collections and reading lists do not.**
 
 Completed:
 - [x] Next.js 16 App Router scaffold with TypeScript (strict), Tailwind v4, `@/*` alias.
 - [x] Biome configured for lint + format (`lint` / `format` scripts).
 - [x] shadcn / Base UI component primitives added under `src/components/ui`.
 - [x] Prisma 7 installed with `prisma7.config.ts` (schema, migrations path, datasource url from env).
-- [x] Migrations `20261002123421_init`, `20261002162635_add_clerk_identity`, `20261003170000_add_collections_media` applied to the schema.
+- [x] Migrations `20261002123421_init`, `20261002162635_add_clerk_identity`, `20261003170000_add_collections_media`, `20261010120000_add_collection_genres`, `20261013120000_add_user_collection_status` applied to the schema.
 - [x] `.gitignore` excludes `.env*` and `/src/generated/prisma`.
 - [x] Shared Prisma Client singleton in `src/lib/prisma.ts` (Neon adapter).
 - [x] npm scripts for `typecheck` plus Prisma commands (`db:generate`, `db:validate`, `db:migrate`).
 - [x] Phase 3 auth: Clerk middleware (`src/proxy.ts`), sign-in/sign-up routes, Clerk webhook syncing `User`, `syncCurrentUser()` lazy sync, `COLLECTION_MANAGER_CLERK_ID`-gated dashboard actions.
 - [x] Sentry instrumentation (`src/instrumentation*.ts`, `src/sentry.*.config.ts`, `withSentryConfig`).
 - [x] Phase 4 partial: TMDB service layer, `MediaItem` cache, media detail pages, collections browse + manager UI with drag reorder, and URL-driven genre filtering on `/collections`.
+- [x] Phase 8 partial: per-user `Watching`/`Watched` status for whole collections (`UserCollectionStatus`), the user-gated `setCollectionStatus` Server Action, per-user status badges on `/collections`, the `CollectionStatusControl` in the collection hero, and signed-in `/watching` + `/watched` views.
 
 Open items:
 - [ ] Live DB connectivity is not verified in this workspace; migrations are committed but not confirmed applied to the Neon instance. Run `npx prisma migrate status` with `DATABASE_URL` set to check.
 - [ ] No test runner is configured. Validation is `npm run typecheck`, `npm run lint`, `npm run build` (see §9).
 - [ ] TMDB credentials (`TMDB_API_Read_Access_Token` or `TMDB_API_Key`) must be present in `.env`; the service throws without them.
 
-**Current phase:** Phase 4 (partial) — catalog and collections. Next unstarted: Phase 5.
+**Current phase:** Phase 4 (partial) — catalog and collections; Phase 8 (partial) — per-user watch status over collections. Next unstarted: Phase 5.
 
 Page-by-page UI inventory: see §11.
 
@@ -230,10 +231,12 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/collections/[slug]/media/[mediaType]/[tmdbId]` | `src/app/collections/[slug]/media/[mediaType]/[tmdbId]/page.tsx` | TMDB detail opened from a collection |
 | `/dashboard` | `src/app/dashboard/page.tsx` | Authenticated profile home |
 | `/dashboard/collections` | `src/app/dashboard/collections/page.tsx` | Owner-only manager workspace |
+| `/watching` | `src/app/watching/page.tsx` | Signed-in user's collections marked Watching |
+| `/watched` | `src/app/watched/page.tsx` | Signed-in user's collections marked Watched |
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
 | `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
 
-Shared chrome lives in `src/app/layout.tsx`: logo + wordmark (links to `/collections`, the home page), `Collections` link, `ThemeToggle`, and Clerk `Show`/`SignInButton`/`SignUpButton`/`UserButton`. The dashboard link renders only for the configured manager. Because the logo is the only link to `/`, the landing page is reachable by direct URL only. The hero subtracts a hardcoded `73px` header height (`min-h-[calc(100dvh-73px)]`) — changing header padding breaks that offset.
+Shared chrome lives in `src/app/layout.tsx`: logo + wordmark (links to `/collections`, the home page), `Collections` link, `ThemeToggle`, and Clerk `Show`/`SignInButton`/`SignUpButton`/`UserButton`. Signed-in users also get `Watching` and `Watched` links; the dashboard link renders only for the configured manager. Because the logo is the only link to `/`, the landing page is reachable by direct URL only. The hero subtracts a hardcoded `73px` header height (`min-h-[calc(100dvh-73px)]`) — changing header padding breaks that offset.
 
 ### Home (`/`)
 
@@ -253,12 +256,13 @@ The app's default home page and the post-sign-in/sign-up destination. Header blo
 - Invalid or unknown `?genre=` values (including repeated params) fall back to "All" via `isCollectionGenre()`. A genre with no matches shows an `Empty` with a "Show all collections" link. The name search input in `CollectionBrowser` remains client-side and now narrows within the genre-filtered set.
 - A max-w-md, icon-prefixed search input filters collections by name in memory — there is no server-side search.
 - Results render as a `sm:2 / lg:3` grid of `CollectionCard`.
-- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.
-- Empty states use the shadcn `Empty` primitive: no collections at all vs. "No collections found" when the filter misses.
+- Signed-in viewers also see per-user watch state: the page resolves the current user (`getCurrentUser()`), looks up each collection's `WatchStatus` via `getCollectionStatuses`, and passes it through as an optional `status` prop. Signed-out viewers get no status.
+- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges; when a `status` is present it also renders a `Watching`/`Watched` badge beside the title. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.
+- Empty states use the shadcn `Empty` primitive: no collections at all (page-level) vs. a filter miss. `CollectionBrowser` takes optional `emptyTitle` / `emptyDescription` props (defaults "No collections found" / "Try a different collection name.") so `/watching` and `/watched` can supply their own empty copy.
 
 ### Collection detail (`/collections/[slug]`)
 
-`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), the collection's genre badges, a 4xl → 6xl `font-heading` h1, and the description. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
+`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), the collection's genre badges, a 4xl → 6xl `font-heading` h1, and the description. A `CollectionStatusControl` (Server Component, `src/components/collection-status-control.tsx`) sits under the description: signed-out viewers see a `SignInButton`-wrapped prompt; signed-in viewers see `Watching`/`Watched` submit buttons (plus a `Remove` button when a status is set) posting to the user-gated `setCollectionStatus` Server Action. The page resolves the viewer's current status via `getCollectionStatus`. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
 
 Cards inside a collection link to the **nested** media route (`/collections/<slug>/media/<type>/<id>`), not `/media/...`, so the media page can offer a back link to that collection. `MediaCard` takes an optional `collectionSlug` prop for this; `CollectionMediaBrowser` forwards it from the collection page.
 
@@ -278,9 +282,13 @@ Filter row — All / Movies / TV shows / Animated movies / Animated series — p
 
 The create and edit forms both include a `GenreMultiselect` dropdown (`src/components/genre-multiselect.tsx`) that submits one `genres` entry per ticked genre; the actions sanitise that list against the fixed TMDB vocabulary in `src/lib/collections/genres.ts`, which drops unknown values and canonicalises the order.
 
+### Watching & Watched (`/watching`, `/watched`)
+
+Both are `force-dynamic` + `auth.protect()`, signed-in only (the header links and the `src/proxy.ts` matcher gate them). Each resolves the current user (`getCurrentUser()`) and loads that user's collections for its status via `listUserCollectionsByStatus` (`WATCHING` / `WATCHED`), tags each with its `status`, and renders the shared `CollectionBrowser` under a "Your library" header with status-specific empty copy.
+
 ### Media detail (`/media/[mediaType]/[tmdbId]` and `/collections/[slug]/media/[mediaType]/[tmdbId]`)
 
-Both routes are `revalidate = 3600`, TMDB-backed, and render the same shared component: `src/components/media-detail.tsx` (`MediaDetailView`). The page files only parse params and supply a back link, so media markup changes belong in the component, not the routes.
+Both routes are `revalidate = 3600`, TMDB-backed, and render the same shared component: `src/components/media-detail.tsx` (`MediaDetailView`). The page files only parse params and supply a back link, so media markup changes belong in the component, not the routes. Media detail is untouched by per-user watch status — it renders no per-user data and watch status is collection-level only.
 
 `MediaDetailView` props: `mediaType`, `tmdbId`, optional `season` (from `?season=`), `basePath` (empty at the root route; `/collections/<slug>` inside a collection, used to keep season-switch links in the same context), `backHref`, and `backLabel`. Renders backdrop hero, poster, type/TMDB-score badges, and metadata; TV additionally resolves the season through `getTvSeasonDetails`. Invalid id or non-`movie`/`tv` segment → `notFound()`.
 

@@ -2,11 +2,14 @@ import { ArrowLeft, Film, Tv } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CollectionMediaBrowser } from "@/components/collection-media-browser";
+import { CollectionStatusControl } from "@/components/collection-status-control";
 import { GenreBadges } from "@/components/genre-badges";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getCollectionBySlug } from "@/lib/collections";
 import { tmdbImage } from "@/lib/tmdb";
+import { getCollectionStatus } from "@/lib/watch-status/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,14 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
   const { slug } = await params;
   const collection = await getCollectionBySlug(slug);
   if (!collection) notFound();
+
+  const user = await getCurrentUser();
+  const viewerStatus = user
+    ? await getCollectionStatus({
+        userId: user.id,
+        collectionId: collection.id,
+      })
+    : null;
 
   const media = collection.media.map(({ mediaItem }) => mediaItem);
   const movies = media.filter((item) => item.mediaType === "MOVIE").length;
@@ -71,6 +82,11 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
             <p className="max-w-3xl text-muted-foreground">
               {collection.description}
             </p>
+            <CollectionStatusControl
+              slug={collection.slug}
+              status={viewerStatus}
+              isSignedIn={user !== null}
+            />
           </div>
         </div>
       </section>

@@ -9,8 +9,11 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { listCollections, listCollectionGenres } from "@/lib/collections";
 import { isCollectionGenre } from "@/lib/collections/genres";
+import { getCollectionStatuses } from "@/lib/watch-status/queries";
+import type { WatchStatus } from "@/lib/watch-status/types";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,19 @@ export default async function CollectionsPage({
     listCollectionGenres(),
   ]);
 
+  const user = await getCurrentUser();
+  const statuses = user
+    ? await getCollectionStatuses({
+        userId: user.id,
+        collectionIds: collections.map((collection) => collection.id),
+      })
+    : new Map<string, WatchStatus>();
+
+  const collectionsWithStatus = collections.map((collection) => ({
+    ...collection,
+    status: statuses.get(collection.id) ?? null,
+  }));
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-3">
@@ -40,8 +56,8 @@ export default async function CollectionsPage({
         </p>
       </header>
       <GenreFilterBar genres={genres} activeGenre={activeGenre} />
-      {collections.length ? (
-        <CollectionBrowser collections={collections} />
+      {collectionsWithStatus.length ? (
+        <CollectionBrowser collections={collectionsWithStatus} />
       ) : (
         <Empty className="min-h-80 border">
           <EmptyHeader>
