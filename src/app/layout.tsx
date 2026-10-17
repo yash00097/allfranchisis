@@ -1,16 +1,10 @@
-import {
-  ClerkProvider,
-  Show,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Image from "next/image";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { cookies } from "next/headers";
+import { SiteShell } from "@/components/site-shell";
 import { isCollectionManager } from "@/lib/auth/collection-manager";
 import "./globals.css";
 
@@ -33,6 +27,9 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { userId } = await auth();
   const canManageCollections = userId ? await isCollectionManager() : false;
+  const cookieStore = await cookies();
+  const defaultSidebarOpen =
+    cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
     <html
@@ -41,45 +38,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ClerkProvider appearance={{ theme: shadcn }}>
-          <header className="relative z-20 flex items-center justify-between px-6 py-4">
-            <a
-              className="flex items-center gap-2 font-semibold"
-              href="/collections"
-            >
-              <Image
-                src="/logo.svg"
-                alt=""
-                aria-hidden="true"
-                width={28}
-                height={28}
-              />
-              <span className="inline-flex">
-                <span className="text-primary">All</span>
-                <span>Franchisis</span>
-              </span>
-            </a>
-            <nav className="flex items-center gap-4 text-sm">
-              <a href="/collections">Collections</a>
-              <ThemeToggle />
-              <Show when="signed-out">
-                <SignInButton mode="modal">
-                  <button type="button">Sign in</button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button type="button">Sign up</button>
-                </SignUpButton>
-              </Show>
-              <Show when="signed-in">
-                <a href="/watching">Watching</a>
-                <a href="/watched">Watched</a>
-                {canManageCollections ? (
-                  <a href="/dashboard">Dashboard</a>
-                ) : null}
-                <UserButton />
-              </Show>
-            </nav>
-          </header>
-          {children}
+          <SiteShell
+            canManageCollections={canManageCollections}
+            defaultSidebarOpen={defaultSidebarOpen}
+          >
+            {children}
+          </SiteShell>
         </ClerkProvider>
       </body>
     </html>

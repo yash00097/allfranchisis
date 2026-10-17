@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
-    <main className="home-page relative flex min-h-[calc(100dvh-73px)] w-full items-center overflow-hidden px-6 py-20">
+    <main className="home-page relative flex min-h-[calc(100dvh-4rem)] w-full items-center overflow-hidden px-6 py-20">
       <HomeCarousel />
       <div className="relative z-10 mx-auto w-full max-w-7xl">
         <section className="flex max-w-3xl flex-col gap-6">

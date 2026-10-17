@@ -221,7 +221,7 @@ npm run build && npm start       # production build + serve
 
 Every route is a Server Component. Client Components exist only where noted.
 
-**Routing rule — `/collections` is the app's home page.** `/` is a marketing landing page only and is not the default destination. Any "go home" link, post-auth redirect, nav default, or new entry point must target `/collections`, never `/`. Currently that means: the header logo/wordmark link in `src/app/layout.tsx`, and `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` in `.env` (`.env` is gitignored — the same values must be set in the deployment environment, or sign-in lands on `/` in production).
+**Routing rule — `/collections` is the app's home page.** `/` is a marketing landing page only and is not the default destination. Any "go home" link, post-auth redirect, nav default, or new entry point must target `/collections`, never `/`. Currently that means: the logo/wordmark links in `AppSidebar` (`src/components/app-sidebar.tsx`) and `LandingHeader` (`src/components/landing-header.tsx`), and `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` in `.env` (`.env` is gitignored — the same values must be set in the deployment environment, or sign-in lands on `/` in production).
 
 | Route | File | Purpose |
 |---|---|---|
@@ -236,7 +236,7 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
 | `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
 
-Shared chrome lives in `src/app/layout.tsx`: logo + wordmark (links to `/collections`, the home page), `Collections` link, `ThemeToggle`, and Clerk `Show`/`SignInButton`/`SignUpButton`/`UserButton`. Signed-in users also get `Watching` and `Watched` links; the dashboard link renders only for the configured manager. Because the logo is the only link to `/`, the landing page is reachable by direct URL only. The hero subtracts a hardcoded `73px` header height (`min-h-[calc(100dvh-73px)]`) — changing header padding breaks that offset.
+Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, fixed `h-16`, logo + Collections + theme + auth), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`Watching`, `Watched`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only. The hero subtracts the landing header height via `min-h-[calc(100dvh-4rem)]` (`LandingHeader` is `h-16`) — changing the landing header height breaks that offset.
 
 ### Home (`/`)
 

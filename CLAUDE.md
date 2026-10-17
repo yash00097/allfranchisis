@@ -32,7 +32,7 @@ Next.js 16 App Router, React Server Components by default. Request flow:
 - `src/app/**/page.tsx` — Server Components read through `src/lib/*` and render `src/components/*`. DB-backed pages set `export const dynamic = "force-dynamic"`; TMDB-backed media pages set `export const revalidate = 3600`.
 - `src/app/dashboard/collections/actions.ts` — all mutations are Server Actions (`"use server"`), each starting with `requireCollectionManager()`, ending with `revalidatePath(...)`.
 - `src/app/collections/actions.ts` — `setCollectionStatus` Server Action (user-gated via `requireCurrentUser()`, **not** manager-gated): writes/clears `UserCollectionStatus` and revalidates `/collections`, the detail route, `/watching`, `/watched`.
-- Client Components (`"use client"`) exist only for interaction: `collection-browser`, `collection-manager`, `collection-media-browser`, `home-carousel`, `theme-toggle`, `auto-scroll-row`, `genre-multiselect`. They receive serialized props and call Server Actions.
+- Client Components (`"use client"`) exist only for interaction: `site-shell`, `app-sidebar`, `site-header`, `landing-header`, `collection-browser`, `collection-manager`, `collection-media-browser`, `home-carousel`, `theme-toggle`, `auto-scroll-row`, `genre-multiselect`. `src/app/layout.tsx` renders `SiteShell` (with `canManageCollections` and the `sidebar_state` cookie as `defaultSidebarOpen`) and no longer contains nav markup. The interactive components receive serialized props and call Server Actions; the shell components (`site-shell`, `app-sidebar`, `site-header`, `landing-header`) render navigation and auth chrome.
 
 Layers under `src/lib/` (each DB/auth/TMDB module imports `server-only`):
 
