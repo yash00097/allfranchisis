@@ -5,7 +5,8 @@ import {
   SignInButton,
   SignUpButton,
   useAuth,
-  UserButton,
+  useClerk,
+  useUser,
 } from "@clerk/nextjs";
 import { LogIn, UserPlus } from "lucide-react";
 import Image from "next/image";
@@ -36,6 +37,8 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
+  const { openUserProfile } = useClerk();
   const { isMobile, setOpenMobile } = useSidebar();
   const groups = visibleNavGroups({
     signedIn: Boolean(isSignedIn),
@@ -104,12 +107,34 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <Show when="signed-in">
-          <div className="flex items-center gap-2 p-1 group-data-[collapsible=icon]:justify-center">
-            <UserButton />
-            <span className="truncate text-sm font-medium group-data-[collapsible=icon]:hidden">
-              Account
-            </span>
-          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                size="lg"
+                tooltip="Open profile"
+                onClick={() => openUserProfile()}
+              >
+                {user?.imageUrl ? (
+                  <img
+                    src={user.imageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    width={28}
+                    height={28}
+                    className="size-7 shrink-0 rounded-none bg-muted object-cover"
+                  />
+                ) : (
+                  <span className="size-7 shrink-0 rounded-none bg-muted" />
+                )}
+                <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
+                  {user?.fullName ??
+                    user?.username ??
+                    user?.firstName ??
+                    "Account"}
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </Show>
         <Show when="signed-out">
           <div className="flex flex-col gap-2 group-data-[collapsible=icon]:hidden">

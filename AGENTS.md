@@ -120,7 +120,7 @@ Design principles for Phase 2:
 - **Phase 5:** Media relationships and franchise hierarchy — not started. No relationship model, no franchise entity.
 - **Phase 6:** Individual ratings and reviews — not started. Ratings shown in the UI are read-through TMDB scores, not stored user ratings.
 - **Phase 7:** Search, filtering, and discovery — not started as a route. Only client-side filtering exists (`CollectionBrowser` filters by name, `CollectionMediaBrowser` filters by type/animated and sorts by order/alpha/release/rating).
-- **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `Watching`/`Watched` status over collections now exists (`UserCollectionStatus`, `/watching`, `/watched`); per-user collections and reading lists do not. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
+- **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `In Progress`/`Completed` status over collections now exists (`UserCollectionStatus`, `/watching`, `/watched`); per-user collections and reading lists do not. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
 - **Phase 9:** Admin tools and content management — early slice only. `/dashboard/collections` + `CollectionManager` cover collection CRUD, TMDB ingestion, and ordering for one hardcoded owner (`COLLECTION_MANAGER_CLERK_ID`). No general roles, moderation, or audit tooling.
 - **Phase 10:** Performance optimization, security, testing, and deployment — partial. Sentry is wired, images use Next `Image`/plain `img` with TMDB sizing, and TMDB reads are cached 1 hour; there is no test runner, no CI config, and no rate limiting.
 
@@ -159,7 +159,7 @@ Design principles for Phase 2:
 
 ## 8. Current Project Status
 
-**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not. Phase 8 is partial: per-user Watching/Watched status over collections exists; per-user collections and reading lists do not.**
+**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not. Phase 8 is partial: per-user In Progress/Completed status over collections exists; per-user collections and reading lists do not.**
 
 Completed:
 - [x] Next.js 16 App Router scaffold with TypeScript (strict), Tailwind v4, `@/*` alias.
@@ -173,7 +173,7 @@ Completed:
 - [x] Phase 3 auth: Clerk middleware (`src/proxy.ts`), sign-in/sign-up routes, Clerk webhook syncing `User`, `syncCurrentUser()` lazy sync, `COLLECTION_MANAGER_CLERK_ID`-gated dashboard actions.
 - [x] Sentry instrumentation (`src/instrumentation*.ts`, `src/sentry.*.config.ts`, `withSentryConfig`).
 - [x] Phase 4 partial: TMDB service layer, `MediaItem` cache, media detail pages, collections browse + manager UI with drag reorder, and URL-driven genre filtering on `/collections`.
-- [x] Phase 8 partial: per-user `Watching`/`Watched` status for whole collections (`UserCollectionStatus`), the user-gated `setCollectionStatus` Server Action, per-user status badges on `/collections`, the `CollectionStatusControl` in the collection hero, and signed-in `/watching` + `/watched` views.
+- [x] Phase 8 partial: per-user `In Progress`/`Completed` status for whole collections (`UserCollectionStatus`), the user-gated `setCollectionStatus` Server Action, per-user status badges on `/collections`, the `CollectionStatusControl` in the collection hero, and signed-in `/watching` + `/watched` views.
 
 Open items:
 - [ ] Live DB connectivity is not verified in this workspace; migrations are committed but not confirmed applied to the Neon instance. Run `npx prisma migrate status` with `DATABASE_URL` set to check.
@@ -231,16 +231,16 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/collections/[slug]/media/[mediaType]/[tmdbId]` | `src/app/collections/[slug]/media/[mediaType]/[tmdbId]/page.tsx` | TMDB detail opened from a collection |
 | `/dashboard` | `src/app/dashboard/page.tsx` | Authenticated profile home |
 | `/dashboard/collections` | `src/app/dashboard/collections/page.tsx` | Owner-only manager workspace |
-| `/watching` | `src/app/watching/page.tsx` | Signed-in user's collections marked Watching |
-| `/watched` | `src/app/watched/page.tsx` | Signed-in user's collections marked Watched |
+| `/watching` | `src/app/watching/page.tsx` | Signed-in user's collections marked In Progress |
+| `/watched` | `src/app/watched/page.tsx` | Signed-in user's collections marked Completed |
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
 | `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
 
-Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, fixed `h-16`, logo + Collections + theme + auth), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`Watching`, `Watched`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only. The hero subtracts the landing header height via `min-h-[calc(100dvh-4rem)]` (`LandingHeader` is `h-16`) — changing the landing header height breaks that offset.
+Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, fixed `h-16`, logo + Collections + theme + auth), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`In Progress`, `Completed`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The hero subtracts the landing header height via `min-h-[calc(100dvh-4rem)]` (`LandingHeader` is `h-16`) — changing the landing header height breaks that offset.
 
 ### Home (`/`)
 
-Marketing landing page, reachable by direct URL only — the default home is `/collections`. Full-height hero over a decorative background carousel.
+Marketing landing page, reachable by direct URL only and only for signed-out visitors (`src/proxy.ts` redirects signed-in users to `/collections`) — the default home is `/collections`. Full-height hero over a decorative background carousel.
 
 - `HomeCarousel` (`"use client"`) is `aria-hidden` — purely visual, no controls, no dots. It autoplays every 5s (`AUTOPLAY_DELAY`), sliding 4 images listed in the `franchiseImages` array (`public/franchise/1..4.png`). The track is tripled (last + list + list) to fake infinite scroll and snaps back on `transitionEnd`.
 - It honors `prefers-reduced-motion` by disabling autoplay, and slide width is responsive: `68vw` mobile, `48vw` ≤1024px, `34vw` wider.
@@ -257,12 +257,12 @@ The app's default home page and the post-sign-in/sign-up destination. Header blo
 - A max-w-md, icon-prefixed search input filters collections by name in memory — there is no server-side search.
 - Results render as a `sm:2 / lg:3` grid of `CollectionCard`.
 - Signed-in viewers also see per-user watch state: the page resolves the current user (`getCurrentUser()`), looks up each collection's `WatchStatus` via `getCollectionStatuses`, and passes it through as an optional `status` prop. Signed-out viewers get no status.
-- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges; when a `status` is present it also renders a `Watching`/`Watched` badge beside the title. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.
+- `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges; when a `status` is present it also renders an `In Progress`/`Completed` badge beside the title. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.
 - Empty states use the shadcn `Empty` primitive: no collections at all (page-level) vs. a filter miss. `CollectionBrowser` takes optional `emptyTitle` / `emptyDescription` props (defaults "No collections found" / "Try a different collection name.") so `/watching` and `/watched` can supply their own empty copy.
 
 ### Collection detail (`/collections/[slug]`)
 
-`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), the collection's genre badges, a 4xl → 6xl `font-heading` h1, and the description. A `CollectionStatusControl` (Server Component, `src/components/collection-status-control.tsx`) sits under the description: signed-out viewers see a `SignInButton`-wrapped prompt; signed-in viewers see `Watching`/`Watched` submit buttons (plus a `Remove` button when a status is set) posting to the user-gated `setCollectionStatus` Server Action. The page resolves the viewer's current status via `getCollectionStatus`. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
+`force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), the collection's genre badges, a 4xl → 6xl `font-heading` h1, and the description. A `CollectionStatusControl` (Server Component, `src/components/collection-status-control.tsx`) sits under the description: signed-out viewers see a `SignInButton`-wrapped prompt; signed-in viewers see `In Progress`/`Completed` submit buttons (plus a `Remove` button when a status is set) posting to the user-gated `setCollectionStatus` Server Action. The page resolves the viewer's current status via `getCollectionStatus`. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
 
 Cards inside a collection link to the **nested** media route (`/collections/<slug>/media/<type>/<id>`), not `/media/...`, so the media page can offer a back link to that collection. `MediaCard` takes an optional `collectionSlug` prop for this; `CollectionMediaBrowser` forwards it from the collection page.
 
@@ -282,7 +282,7 @@ Filter row — All / Movies / TV shows / Animated movies / Animated series — p
 
 The create and edit forms both include a `GenreMultiselect` dropdown (`src/components/genre-multiselect.tsx`) that submits one `genres` entry per ticked genre; the actions sanitise that list against the fixed TMDB vocabulary in `src/lib/collections/genres.ts`, which drops unknown values and canonicalises the order.
 
-### Watching & Watched (`/watching`, `/watched`)
+### In Progress & Completed (`/watching`, `/watched`)
 
 Both are `force-dynamic` + `auth.protect()`, signed-in only (the header links and the `src/proxy.ts` matcher gate them). Each resolves the current user (`getCurrentUser()`) and loads that user's collections for its status via `listUserCollectionsByStatus` (`WATCHING` / `WATCHED`), tags each with its `status`, and renders the shared `CollectionBrowser` under a "Your library" header with status-specific empty copy.
 

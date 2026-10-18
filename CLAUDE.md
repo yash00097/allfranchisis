@@ -51,7 +51,7 @@ Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 
 - `User` — `clerkId` and `email` both unique; maps Clerk identity to a local row.
 - `MediaItem` — cached TMDB metadata keyed by `@@unique([tmdbId, mediaType])`; `mediaType` enum `MOVIE | TV`.
 - `Collection` / `CollectionMedia` — join carries `displayOrder`; reordering rewrites the whole set in one `$transaction`.
-- `UserCollectionStatus` — per-user Watching/Watched state for a whole `Collection` (composite PK, `status` enum `WATCHING | WATCHED`, cascade on both FKs). Written by `setCollectionStatus` in `src/app/collections/actions.ts`; read by `src/lib/watch-status/queries.ts`. Status is collection-level, not per `MediaItem`.
+- `UserCollectionStatus` — per-user In Progress/Completed state (DB enum `WATCHING | WATCHED`) for a whole `Collection` (composite PK, `status` enum `WATCHING | WATCHED`, cascade on both FKs). Written by `setCollectionStatus` in `src/app/collections/actions.ts`; read by `src/lib/watch-status/queries.ts`. Status is collection-level, not per `MediaItem`.
 
 ## Environment
 
@@ -59,7 +59,7 @@ Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 
 
 ## Gotchas
 
-- `/collections` is the home page. `/` is a marketing landing page only. New "go home" links, redirects, and nav defaults must target `/collections` — including `NEXT_PUBLIC_CLERK_SIGN_{IN,UP}_FALLBACK_REDIRECT_URL` in `.env` (gitignored; set it in the deployment env too).
+- `/collections` is the home page. `/` is a marketing landing page for signed-out visitors only: `src/proxy.ts` redirects signed-in requests for `/` to `/collections`. New "go home" links, redirects, and nav defaults must target `/collections` — including `NEXT_PUBLIC_CLERK_SIGN_{IN,UP}_FALLBACK_REDIRECT_URL` in `.env` (gitignored; set it in the deployment env too).
 - `LayoutProps<"/">` and route-typed helpers come from Next 16's generated types — check `node_modules/next/dist/docs/` before using unfamiliar APIs.
 - Errors: unhandled errors go to Sentry automatically (`src/instrumentation*.ts`, `sentry.*.config.ts`, `next.config.ts` wraps with `withSentryConfig`). Report unexpected caught errors via `Sentry.captureException(error)`; handle expected validation failures locally.
 - Styling: Tailwind v4 via `@tailwindcss/postcss`, custom "DOOM 64" OKLCH palette in `src/app/globals.css`, dark mode via a `.dark` class toggled by `theme-toggle`. shadcn config is `style: base-nova` in `components.json`; primitives live in `src/components/ui` (Base UI-based).

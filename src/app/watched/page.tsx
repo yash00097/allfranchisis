@@ -24,14 +24,14 @@ export default async function WatchedPage() {
           Your library
         </p>
         <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
-          Watched
+          Completed
         </h1>
         <p className="text-muted-foreground">Collections you have finished.</p>
       </header>
       <CollectionBrowser
         collections={collections}
-        emptyTitle="Nothing watched yet"
-        emptyDescription="Open a collection and mark it as Watched to see it here."
+        emptyTitle="Nothing completed yet"
+        emptyDescription="Open a collection and mark it as Completed to see it here."
       />
     </main>
   );

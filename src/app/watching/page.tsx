@@ -24,7 +24,7 @@ export default async function WatchingPage() {
           Your library
         </p>
         <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
-          Watching
+          In Progress
         </h1>
         <p className="text-muted-foreground">
           Collections you are currently working through.
@@ -33,7 +33,7 @@ export default async function WatchingPage() {
       <CollectionBrowser
         collections={collections}
         emptyTitle="Nothing in progress"
-        emptyDescription="Open a collection and mark it as Watching to see it here."
+        emptyDescription="Open a collection and mark it as In Progress to see it here."
       />
     </main>
   );

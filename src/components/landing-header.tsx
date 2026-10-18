@@ -32,8 +32,8 @@ export function LandingHeader() {
           </SignUpButton>
         </Show>
         <Show when="signed-in">
-          <a href="/watching">Watching</a>
-          <a href="/watched">Watched</a>
+          <a href="/watching">In Progress</a>
+          <a href="/watched">Completed</a>
           <UserButton />
         </Show>
       </nav>

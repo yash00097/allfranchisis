@@ -7,6 +7,6 @@ export function isWatchStatus(value: string): value is WatchStatus {
 }
 
 export const WATCH_STATUS_LABELS: Record<WatchStatus, string> = {
-  WATCHING: "Watching",
-  WATCHED: "Watched",
+  WATCHING: "In Progress",
+  WATCHED: "Completed",
 };

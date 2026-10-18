@@ -39,14 +39,14 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/watching",
-        label: "Watching",
+        label: "In Progress",
         icon: PlayCircle,
         requiresAuth: true,
         requiresManager: false,
       },
       {
         href: "/watched",
-        label: "Watched",
+        label: "Completed",
         icon: CheckCircle2,
         requiresAuth: true,
         requiresManager: false,
