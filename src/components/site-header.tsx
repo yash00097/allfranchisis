@@ -2,13 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background/85 px-4 backdrop-blur">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 bg-background/85 px-4 backdrop-blur">
       <div className="flex min-w-0 items-center gap-2">
         <SidebarTrigger />
         <Separator orientation="vertical" className="h-5 md:hidden" />
@@ -29,7 +28,6 @@ export function SiteHeader() {
           </span>
         </Link>
       </div>
-      <ThemeToggle />
     </header>
   );
 }
