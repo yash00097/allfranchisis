@@ -142,6 +142,7 @@ Design principles for Phase 2:
 ## 7. AI Agent Instructions
 
 - **Read this file before making project changes.**
+- **Check `graphify-out/graph.json` and `graphify-out/GRAPH_REPORT.md` before broad repository exploration.** Use graphify queries and traversal results to identify relevant files and relationships, reducing token usage; run or update graphify when the graph is missing or stale.
 - **`/collections` is the home page; `/` is a landing page.** Never point a new "home" link, redirect, or default route at `/`. See §11.
 - **Respect the current phase.** Phases 3–4 are complete/partial as described in §5 and §8. Do not implement features from later phases without explicit authorization.
 - **Update this file** whenever architectural decisions, dependencies, or completed phases materially change — and at the end of **every session in which project files were modified** if the change is material. A change is material when it adds or removes routes, pages, components, models, migrations, env vars, dependencies, or scripts, or when it moves a phase's completion state. Do not update it for pure formatting, comment, or refactor-only changes with no surface change; in that case say so explicitly instead of editing. Stale phase/status text is a bug: fix §5 and §8 in the same session that makes them stale.
