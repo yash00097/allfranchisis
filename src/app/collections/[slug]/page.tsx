@@ -1,6 +1,7 @@
 import { ArrowLeft, Film, Tv } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CollectionFavoriteButton } from "@/components/collection-favorite-button";
 import { CollectionMediaBrowser } from "@/components/collection-media-browser";
 import { CollectionStatusControl } from "@/components/collection-status-control";
 import { GenreBadges } from "@/components/genre-badges";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getCollectionBySlug } from "@/lib/collections";
+import { getCollectionFavorite } from "@/lib/favorites/queries";
 import { tmdbImage } from "@/lib/tmdb";
 import { getCollectionStatus } from "@/lib/watch-status/queries";
 
@@ -23,12 +25,12 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
   if (!collection) notFound();
 
   const user = await getCurrentUser();
-  const viewerStatus = user
-    ? await getCollectionStatus({
-        userId: user.id,
-        collectionId: collection.id,
-      })
-    : null;
+  const [viewerStatus, isFavorite] = user
+    ? await Promise.all([
+        getCollectionStatus({ userId: user.id, collectionId: collection.id }),
+        getCollectionFavorite({ userId: user.id, collectionId: collection.id }),
+      ])
+    : [null, false];
 
   const media = collection.media.map(({ mediaItem }) => mediaItem);
   const movies = media.filter((item) => item.mediaType === "MOVIE").length;
@@ -76,9 +78,18 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
               </Badge>
             </div>
             <GenreBadges genres={collection.genres} />
-            <h1 className="font-heading text-4xl font-bold tracking-tight lg:text-6xl">
-              {collection.name}
-            </h1>
+            <div className="flex items-start gap-4">
+              <h1 className="font-heading text-4xl font-bold tracking-tight lg:text-6xl">
+                {collection.name}
+              </h1>
+              {user ? (
+                <CollectionFavoriteButton
+                  slug={collection.slug}
+                  name={collection.name}
+                  isFavorite={isFavorite}
+                />
+              ) : null}
+            </div>
             <p className="max-w-3xl text-muted-foreground">
               {collection.description}
             </p>

@@ -30,6 +30,7 @@ model User {
   createdAt DateTime @default(now())
 
   collectionStatuses UserCollectionStatus[]
+  collectionFavorites UserCollectionFavorite[]
 }
 
 model Collection {
@@ -44,6 +45,7 @@ model Collection {
   updatedAt     DateTime          @updatedAt
   media         CollectionMedia[]
   userStatuses  UserCollectionStatus[]
+  userFavorites UserCollectionFavorite[]
 
   @@index([name])
 }
@@ -98,5 +100,17 @@ model UserCollectionStatus {
 
   @@id([userId, collectionId])
   @@index([userId, status])
+  @@index([collectionId])
+}
+
+model UserCollectionFavorite {
+  userId       String
+  collectionId String
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, collectionId])
+  @@index([userId, createdAt])
   @@index([collectionId])
 }

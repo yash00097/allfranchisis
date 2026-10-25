@@ -90,13 +90,15 @@ Path aliases: `@/*` → `./src/*` (see `tsconfig.json`).
 
 ## 4. Database Architecture
 
-The database layer currently contains the Phase 2 foundation, the Phase 3–4 catalog entities, and the Phase 8 per-user watch-status slice. Do not add entities from later phases without explicit authorization.
+The database layer currently contains the Phase 2 foundation, the Phase 3–4 catalog entities, and Phase 8 per-user collection watch status and favorites. Do not add entities from later phases without explicit authorization.
 
 Implemented database surface:
 - PostgreSQL is configured through Prisma 7 and `prisma7.config.ts`. The schema declares no `datasource url`; the CLI reads it from `prisma7.config.ts` and the runtime supplies it to the Neon adapter.
-- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`), `20261013120000_add_user_collection_status` (`WatchStatus` enum, `UserCollectionStatus`).
+- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`), `20261013120000_add_user_collection_status` (`WatchStatus` enum, `UserCollectionStatus`), `20261022120000_add_user_collection_favorite` (`UserCollectionFavorite`; applied to Neon on October 25, 2026).
 - Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, `genres String[]` drawn from the fixed TMDB genre list in `src/lib/collections/genres.ts`, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`), `UserCollectionStatus` (per-user status for a whole `Collection`, composite PK `(userId, collectionId)`, `status WatchStatus { WATCHING | WATCHED }`, both FKs cascade — explicitly **not** per `MediaItem`).
 - Generated Prisma Client code lives under `src/generated/prisma` and must never be edited by hand.
+- `UserCollectionFavorite` stores collection favorites independently of watch status: composite PK `(userId, collectionId)`, `createdAt`, cascading User/Collection FKs, indexes `(userId, createdAt)` and `collectionId`. Relations are `User.collectionFavorites` and `Collection.userFavorites`.
+- Favorite reads in `src/lib/favorites/queries.ts` are server-only: single/batched membership and newest-first library reads with media counts. `setCollectionFavorite` in `src/app/collections/actions.ts` authenticates through `requireCurrentUser()`, resolves a slug, accepts exactly `"true"`/`"false"`, and uses idempotent create/delete writes scoped to the current user. Successful favorite/status changes refresh `/collections`, collection detail, `/watching`, `/watched`, and `/favorites`.
 
 Core concepts:
 - **Users**.
@@ -120,7 +122,7 @@ Design principles for Phase 2:
 - **Phase 5:** Media relationships and franchise hierarchy — not started. No relationship model, no franchise entity.
 - **Phase 6:** Individual ratings and reviews — not started. Ratings shown in the UI are read-through TMDB scores, not stored user ratings.
 - **Phase 7:** Search, filtering, and discovery — not started as a route. Only client-side filtering exists (`CollectionBrowser` filters by name, `CollectionMediaBrowser` filters by type/animated and sorts by order/alpha/release/rating).
-- **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `In Progress`/`Completed` status over collections now exists (`UserCollectionStatus`, `/watching`, `/watched`); per-user collections and reading lists do not. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
+- **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `In Progress`/`Completed` status (`UserCollectionStatus`, `/watching`, `/watched`) and independent collection favorites (`UserCollectionFavorite`, `/favorites`) are implemented and deployed. Per-user collections and reading lists do not exist. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
 - **Phase 9:** Admin tools and content management — early slice only. `/dashboard/collections` + `CollectionManager` cover collection CRUD, TMDB ingestion, and ordering for one hardcoded owner (`COLLECTION_MANAGER_CLERK_ID`). No general roles, moderation, or audit tooling.
 - **Phase 10:** Performance optimization, security, testing, and deployment — partial. Sentry is wired, images use Next `Image`/plain `img` with TMDB sizing, and TMDB reads are cached 1 hour; there is no test runner, no CI config, and no rate limiting.
 
@@ -159,7 +161,7 @@ Design principles for Phase 2:
 
 ## 8. Current Project Status
 
-**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not. Phase 8 is partial: per-user In Progress/Completed status over collections exists; per-user collections and reading lists do not.**
+**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not. Phase 8 is partial: per-user In Progress/Completed status and independent favorites over collections are implemented and deployed; per-user collections and reading lists do not exist.**
 
 Completed:
 - [x] Next.js 16 App Router scaffold with TypeScript (strict), Tailwind v4, `@/*` alias.
@@ -167,6 +169,7 @@ Completed:
 - [x] shadcn / Base UI component primitives added under `src/components/ui`.
 - [x] Prisma 7 installed with `prisma7.config.ts` (schema, migrations path, datasource url from env).
 - [x] Migrations `20261002123421_init`, `20261002162635_add_clerk_identity`, `20261003170000_add_collections_media`, `20261010120000_add_collection_genres`, `20261013120000_add_user_collection_status` applied to the schema.
+- [x] Favorites schema and additive migration `20261022120000_add_user_collection_favorite` added, generated, and applied to the configured Neon database on October 25, 2026.
 - [x] `.gitignore` excludes `.env*` and `/src/generated/prisma`.
 - [x] Shared Prisma Client singleton in `src/lib/prisma.ts` (Neon adapter).
 - [x] npm scripts for `typecheck` plus Prisma commands (`db:generate`, `db:validate`, `db:migrate`).
@@ -174,13 +177,18 @@ Completed:
 - [x] Sentry instrumentation (`src/instrumentation*.ts`, `src/sentry.*.config.ts`, `withSentryConfig`).
 - [x] Phase 4 partial: TMDB service layer, `MediaItem` cache, media detail pages, collections browse + manager UI with drag reorder, and URL-driven genre filtering on `/collections`.
 - [x] Phase 8 partial: per-user `In Progress`/`Completed` status for whole collections (`UserCollectionStatus`), the user-gated `setCollectionStatus` Server Action, per-user status badges on `/collections`, the `CollectionStatusControl` in the collection hero, and signed-in `/watching` + `/watched` views.
+- [x] Phase 8 partial: independent collection favorites, user-gated `setCollectionFavorite`, reusable accessible hearts on collection cards/detail, protected `/favorites` with watch-status badges and newest-first order, and signed-in Favorites navigation. Favorite state comes from server revalidation; no optimistic state or extra client fetch.
 
 Open items:
-- [ ] Live DB connectivity is not verified in this workspace; migrations are committed but not confirmed applied to the Neon instance. Run `npx prisma migrate status` with `DATABASE_URL` set to check.
+- Verification update (October 25, 2026): `npx prisma migrate status` confirmed one pending migration, then the separately approved `npx prisma migrate deploy` applied `20261022120000_add_user_collection_favorite` successfully. All six migrations are now applied.
+- Local validation update (October 25, 2026): `npm run db:validate`, `npm run db:generate`, `npm run typecheck`, and `npm run build` passed. `npm run lint` still reports 11 existing violations in shared UI primitives.
+- Environment update (October 25, 2026): `.env` contains `DATABASE_URL`, but neither `TMDB_API_Read_Access_Token` nor `TMDB_API_Key` is set.
+- [x] Live DB connectivity and migration state verified on October 25, 2026 with `npx prisma migrate status`; all six committed migrations are applied to Neon.
+- [x] Favorites migration applied with approval on October 25, 2026. Database persistence, account isolation, cascades, and signed-in browser interactions still need application-level verification.
 - [ ] No test runner is configured. Validation is `npm run typecheck`, `npm run lint`, `npm run build` (see §9).
 - [ ] TMDB credentials (`TMDB_API_Read_Access_Token` or `TMDB_API_Key`) must be present in `.env`; the service throws without them.
 
-**Current phase:** Phase 4 (partial) — catalog and collections; Phase 8 (partial) — per-user watch status over collections. Next unstarted: Phase 5.
+**Current phase:** Phase 4 (partial) — catalog and collections; Phase 8 (partial) — per-user collection watch status and favorites. Next unstarted: Phase 5.
 
 Page-by-page UI inventory: see §11.
 
@@ -233,10 +241,11 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/dashboard/collections` | `src/app/dashboard/collections/page.tsx` | Owner-only manager workspace |
 | `/watching` | `src/app/watching/page.tsx` | Signed-in user's collections marked In Progress |
 | `/watched` | `src/app/watched/page.tsx` | Signed-in user's collections marked Completed |
+| `/favorites` | `src/app/favorites/page.tsx` | Signed-in user's favorite collections, newest first |
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
 | `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
 
-Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, fixed `h-16`, logo + Collections + theme + auth), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`In Progress`, `Completed`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The hero subtracts the landing header height via `min-h-[calc(100dvh-4rem)]` (`LandingHeader` is `h-16`) — changing the landing header height breaks that offset.
+Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, fixed `h-16`, logo + Collections + theme + auth), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`In Progress`, `Completed`, `Favorites`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The hero subtracts the landing header height via `min-h-[calc(100dvh-4rem)]` (`LandingHeader` is `h-16`) — changing the landing header height breaks that offset.
 
 ### Home (`/`)
 
@@ -257,12 +266,16 @@ The app's default home page and the post-sign-in/sign-up destination. Header blo
 - A max-w-md, icon-prefixed search input filters collections by name in memory — there is no server-side search.
 - Results render as a `sm:2 / lg:3` grid of `CollectionCard`.
 - Signed-in viewers also see per-user watch state: the page resolves the current user (`getCurrentUser()`), looks up each collection's `WatchStatus` via `getCollectionStatuses`, and passes it through as an optional `status` prop. Signed-out viewers get no status.
+- Favorite membership is batch-loaded alongside statuses through `getCollectionFavorites`; cards receive `isFavorite: boolean` for signed-in viewers and `undefined` for signed-out viewers.
 - `CollectionCard`: cover image on a `bg-muted` panel (`object-contain`, or a "No cover image" placeholder), then title, right-aligned "N items" count, a `line-clamp-3` description, and the collection's genre badges; when a `status` is present it also renders an `In Progress`/`Completed` badge beside the title. The whole card is a link to the detail route. Cover URLs starting with `http` are used as-is; otherwise they are treated as TMDB paths and expanded via `tmdbImage(..., "w780")`. The genre row is hidden entirely when the collection has no genres.
 - Empty states use the shadcn `Empty` primitive: no collections at all (page-level) vs. a filter miss. `CollectionBrowser` takes optional `emptyTitle` / `emptyDescription` props (defaults "No collections found" / "Try a different collection name.") so `/watching` and `/watched` can supply their own empty copy.
+- `CollectionFavoriteButton` (`src/components/collection-favorite-button.tsx`, `"use client"`) is a sibling outside the card Link, positioned at the cover's top-right within a relative wrapper. It has a 44px hit target, `aria-pressed`, add/remove labels, a decorative Heart (outline or primary-filled), pending disable/`aria-busy`, and `role="alert"` errors. `useTransition` sends the desired opposite state; the refreshed prop supplies displayed state. Signed-out cards hide the control.
 
 ### Collection detail (`/collections/[slug]`)
 
 `force-dynamic`. A bordered hero band with an optional backdrop image, a `bg-background/85` scrim over it, and an optional 2:3 cover (`w-40`) sitting beside: an "All collections" back link, badges (total items / movies / shows), the collection's genre badges, a 4xl → 6xl `font-heading` h1, and the description. A `CollectionStatusControl` (Server Component, `src/components/collection-status-control.tsx`) sits under the description: signed-out viewers see a `SignInButton`-wrapped prompt; signed-in viewers see `In Progress`/`Completed` submit buttons (plus a `Remove` button when a status is set) posting to the user-gated `setCollectionStatus` Server Action. The page resolves the viewer's current status via `getCollectionStatus`. Body is `CollectionMediaBrowser`, or a plain "This collection has no media yet." panel. Missing slug → `notFound()`.
+
+Signed-in viewers also see `CollectionFavoriteButton` beside the title. Favorite membership and watch status load in parallel using `getCollectionFavorite` and `getCollectionStatus`; the two states remain independent.
 
 Cards inside a collection link to the **nested** media route (`/collections/<slug>/media/<type>/<id>`), not `/media/...`, so the media page can offer a back link to that collection. `MediaCard` takes an optional `collectionSlug` prop for this; `CollectionMediaBrowser` forwards it from the collection page.
 
@@ -284,7 +297,11 @@ The create and edit forms both include a `GenreMultiselect` dropdown (`src/compo
 
 ### In Progress & Completed (`/watching`, `/watched`)
 
-Both are `force-dynamic` + `auth.protect()`, signed-in only (the header links and the `src/proxy.ts` matcher gate them). Each resolves the current user (`getCurrentUser()`) and loads that user's collections for its status via `listUserCollectionsByStatus` (`WATCHING` / `WATCHED`), tags each with its `status`, and renders the shared `CollectionBrowser` under a "Your library" header with status-specific empty copy.
+Both are `force-dynamic` + `auth.protect()`, signed-in only (the header links and the `src/proxy.ts` matcher gate them). Each resolves the current user (`getCurrentUser()`) and loads that user's collections for its status via `listUserCollectionsByStatus` (`WATCHING` / `WATCHED`), tags each with its `status`, batch-loads favorite membership, and renders the shared `CollectionBrowser` under a "Your library" header with status-specific empty copy.
+
+### Favorites (`/favorites`)
+
+`force-dynamic` + `auth.protect()`, also protected by `src/proxy.ts`. `listUserFavoriteCollections` returns only the current user's favorites, ordered by favorite `createdAt desc`, then `collectionId asc`, with media counts. Batched watch statuses retain In Progress/Completed badges. The shared `CollectionBrowser` renders searchable cards with `isFavorite: true`; empty copy is "No favorites yet" / "Click the heart on a collection to add it to your favorites." Removing the final favorite re-renders this empty state. Manager collection mutations invalidate `/favorites` alongside their existing `/collections` invalidation.
 
 ### Media detail (`/media/[mediaType]/[tmdbId]` and `/collections/[slug]/media/[mediaType]/[tmdbId]`)
 

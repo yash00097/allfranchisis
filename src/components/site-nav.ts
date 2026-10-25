@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   Clapperboard,
+  Heart,
   LayoutDashboard,
   PlayCircle,
 } from "lucide-react";
@@ -48,6 +49,13 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/watched",
         label: "Completed",
         icon: CheckCircle2,
+        requiresAuth: true,
+        requiresManager: false,
+      },
+      {
+        href: "/favorites",
+        label: "Favorites",
+        icon: Heart,
         requiresAuth: true,
         requiresManager: false,
       },

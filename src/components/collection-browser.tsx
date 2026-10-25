@@ -20,6 +20,7 @@ type Collection = {
   coverImageUrl: string | null;
   _count: { media: number };
   status?: "WATCHING" | "WATCHED" | null;
+  isFavorite?: boolean;
 };
 
 export function CollectionBrowser({

@@ -5,6 +5,7 @@ const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/watching",
   "/watched",
+  "/favorites",
 ]);
 const isPublicRoute = createRouteMatcher(["/api/webhooks(.*)"]);
 

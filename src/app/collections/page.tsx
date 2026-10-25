@@ -12,6 +12,7 @@ import {
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { listCollections, listCollectionGenres } from "@/lib/collections";
 import { isCollectionGenre } from "@/lib/collections/genres";
+import { getCollectionFavorites } from "@/lib/favorites/queries";
 import { getCollectionStatuses } from "@/lib/watch-status/queries";
 import type { WatchStatus } from "@/lib/watch-status/types";
 
@@ -30,16 +31,18 @@ export default async function CollectionsPage({
   ]);
 
   const user = await getCurrentUser();
-  const statuses = user
-    ? await getCollectionStatuses({
-        userId: user.id,
-        collectionIds: collections.map((collection) => collection.id),
-      })
-    : new Map<string, WatchStatus>();
+  const collectionIds = collections.map((collection) => collection.id);
+  const [statuses, favorites] = user
+    ? await Promise.all([
+        getCollectionStatuses({ userId: user.id, collectionIds }),
+        getCollectionFavorites({ userId: user.id, collectionIds }),
+      ])
+    : [new Map<string, WatchStatus>(), new Set<string>()];
 
   const collectionsWithStatus = collections.map((collection) => ({
     ...collection,
     status: statuses.get(collection.id) ?? null,
+    isFavorite: user ? favorites.has(collection.id) : undefined,
   }));
 
   return (

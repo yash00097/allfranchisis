@@ -46,6 +46,7 @@ export async function createCollection(formData: FormData) {
     },
   });
   revalidatePath("/collections");
+  revalidatePath("/favorites");
   revalidatePath("/dashboard/collections");
 }
 
@@ -70,6 +71,7 @@ export async function updateCollection(formData: FormData) {
     },
   });
   revalidatePath("/collections");
+  revalidatePath("/favorites");
   revalidatePath("/dashboard/collections");
 }
 
@@ -79,6 +81,7 @@ export async function deleteCollection(formData: FormData) {
   if (!id) throw new Error("Collection ID is required.");
   await getPrismaClient().collection.delete({ where: { id } });
   revalidatePath("/collections");
+  revalidatePath("/favorites");
   revalidatePath("/dashboard/collections");
 }
 
@@ -181,6 +184,7 @@ export async function addMediaToCollection(formData: FormData) {
     create: { collectionId, mediaItemId: mediaItem.id, displayOrder: existing },
   });
   revalidatePath("/collections");
+  revalidatePath("/favorites");
   revalidatePath("/dashboard/collections");
 }
 
@@ -192,6 +196,7 @@ export async function removeMediaFromCollection(formData: FormData) {
     where: { collectionId_mediaItemId: { collectionId, mediaItemId } },
   });
   revalidatePath("/collections");
+  revalidatePath("/favorites");
   revalidatePath("/dashboard/collections");
 }
 
@@ -218,5 +223,6 @@ export async function reorderCollectionMedia(formData: FormData) {
     },
   );
   revalidatePath("/collections");
+  revalidatePath("/favorites");
   revalidatePath("/dashboard/collections");
 }

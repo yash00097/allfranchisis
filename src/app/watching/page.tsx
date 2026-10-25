@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { CollectionBrowser } from "@/components/collection-browser";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCollectionFavorites } from "@/lib/favorites/queries";
 import { listUserCollectionsByStatus } from "@/lib/watch-status/queries";
 
 export const dynamic = "force-dynamic";
@@ -9,13 +10,17 @@ export default async function WatchingPage() {
   await auth.protect();
   const user = await getCurrentUser();
   const collections = user
-    ? (
-        await listUserCollectionsByStatus({
-          userId: user.id,
-          status: "WATCHING",
-        })
-      ).map((collection) => ({ ...collection, status: "WATCHING" as const }))
+    ? await listUserCollectionsByStatus({
+        userId: user.id,
+        status: "WATCHING",
+      })
     : [];
+  const favorites = user
+    ? await getCollectionFavorites({
+        userId: user.id,
+        collectionIds: collections.map((collection) => collection.id),
+      })
+    : new Set<string>();
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-10">
@@ -31,7 +36,11 @@ export default async function WatchingPage() {
         </p>
       </header>
       <CollectionBrowser
-        collections={collections}
+        collections={collections.map((collection) => ({
+          ...collection,
+          status: "WATCHING" as const,
+          isFavorite: favorites.has(collection.id),
+        }))}
         emptyTitle="Nothing in progress"
         emptyDescription="Open a collection and mark it as In Progress to see it here."
       />

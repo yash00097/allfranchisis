@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { requireCurrentUser } from "@/lib/auth/current-user";
 import { getPrismaClient } from "@/lib/prisma";
@@ -43,4 +44,47 @@ export async function setCollectionStatus(formData: FormData): Promise<void> {
   revalidatePath(`/collections/${slug}`);
   revalidatePath("/watching");
   revalidatePath("/watched");
+  revalidatePath("/favorites");
+}
+
+export async function setCollectionFavorite(
+  formData: FormData,
+): Promise<{ error: string | null }> {
+  const user = await requireCurrentUser();
+  const rawSlug = formData.get("slug");
+  const favorite = formData.get("favorite");
+  const slug = typeof rawSlug === "string" ? rawSlug.trim() : "";
+
+  if (!slug) return { error: "Collection is required." };
+  if (favorite !== "true" && favorite !== "false")
+    return { error: "Invalid favorite state." };
+
+  try {
+    const prisma = getPrismaClient();
+    const collection = await prisma.collection.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!collection) return { error: "Collection not found." };
+
+    const key = { userId: user.id, collectionId: collection.id };
+    if (favorite === "true") {
+      await prisma.userCollectionFavorite.createMany({
+        data: [key],
+        skipDuplicates: true,
+      });
+    } else {
+      await prisma.userCollectionFavorite.deleteMany({ where: key });
+    }
+  } catch (error) {
+    Sentry.captureException(error);
+    return { error: "Could not update favorites. Please try again." };
+  }
+
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${slug}`);
+  revalidatePath("/watching");
+  revalidatePath("/watched");
+  revalidatePath("/favorites");
+  return { error: null };
 }
