@@ -1,0 +1,32 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "description": "Clerk publishable key (pk_test_/pk_live_) — required; without it every route 500s (ClerkProvider + proxy.ts middleware).",
+      "requiredAtBoot": true
+    },
+    {
+      "name": "CLERK_SECRET_KEY",
+      "description": "Clerk secret key (sk_test_/sk_live_) — required alongside the publishable key.",
+      "requiredAtBoot": true
+    },
+    {
+      "name": "TMDB_API_Read_Access_Token",
+      "description": "TMDB v4 Read Access Token (themoviedb.org → Settings → API). TMDB_API_Key is the v3 alternative. The app boots without it, but media detail pages (/media/...) throw without a TMDB credential.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "COLLECTION_MANAGER_CLERK_ID",
+      "description": "Clerk user id (user_…) of the account allowed to manage collections at /dashboard/collections. Optional; leave unset to keep the manager workspace locked.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "NEXT_PUBLIC_SENTRY_DSN",
+      "description": "Sentry DSN for error monitoring. Optional; unset disables Sentry cleanly.",
+      "requiredAtBoot": false
+    }
+  ]
+}

@@ -315,3 +315,15 @@ The nested route additionally loads the collection by slug and 404s if it is mis
 ### Theming
 
 Custom "DOOM 64" OKLCH palette in `src/app/globals.css`, defined for light (`:root`) and dark (`.dark`) with a `@theme inline` block mapping the tokens to Tailwind color utilities. Dark mode is class-based and toggled by `src/components/theme-toggle.tsx`. Display headings rely on the `font-heading` utility.
+
+## 12. Base44 Sandbox Dev Environment
+
+The Base44 preview runs this repo from the bind-mounted source via `docker-compose.base44.yml` (not the production Neon image):
+
+- `db` — local `postgres:17-alpine` (credentials `allfranchisis`), with a healthcheck.
+- `setup` — one-shot `node:24` service: `npm ci` → `npx prisma generate` → `npx prisma migrate deploy`. The `web` service waits on `service_completed_successfully`.
+- `web` — `node:24` running `npx next dev --hostname 0.0.0.0 --port 3000` from `/app` (the cloned source), live-reload via Turbopack. Maps host port 3000.
+- Prisma runs against the **local** Postgres (the `@prisma/adapter-pg` path in `src/lib/prisma.ts`), not Neon — set `DATABASE_URL` / `DATABASE_URL_POOLED` to the local service in compose `environment`. Neon credentials are not needed in the sandbox.
+- `next.config.ts` adds `allowedDevOrigins: ['3000-' + BASE44_PUBLIC_HOST_SUFFIX]` only when `BASE44_PREVIEW_MODE === '1'`, so the preview proxy origin can load dev assets/HMR; ordinary local dev and production builds keep the default allowlist.
+- External-service secrets (Clerk publishable/secret keys, `TMDB_API_Read_Access_Token`, optional `COLLECTION_MANAGER_CLERK_ID` and `NEXT_PUBLIC_SENTRY_DSN`) are delivered by the platform to `/run/base44/app.env`, mounted as the last `env_file` so dashboard values win. Clerk keys are **required at boot** — without them `ClerkProvider`/`proxy.ts` throw and every route 500s.
+- Start: `docker compose -f docker-compose.base44.yml up -d`. The local DB starts empty, so `/collections` shows its empty state until collections are created (via `/dashboard/collections` with a configured manager, or by seeding).
