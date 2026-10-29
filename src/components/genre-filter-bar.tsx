@@ -18,11 +18,6 @@ export function GenreFilterBar({
   return (
     <nav aria-label="Filter collections by genre" className="-mx-6 px-6">
       <AutoScrollRow>
-        <GenreChip
-          href="/collections"
-          label="All"
-          active={activeGenre === null}
-        />
         {genres.map((genre) => (
           <GenreChip
             key={genre}
