@@ -36,14 +36,12 @@ export default async function CollectionsPage({
   ]);
   const [genreCollections, discovery] = await Promise.all([
     activeGenre ? listCollections({ genre: activeGenre }) : Promise.resolve([]),
-    activeGenre
-      ? Promise.resolve(null)
-      : listCollectionDiscovery({ userId: user?.id }),
+    activeGenre ? Promise.resolve(null) : listCollectionDiscovery(),
   ]);
   const discoveryCollections = discovery
     ? [
-        ...discovery.userFavorites,
         ...discovery.recentlyUpdated,
+        ...discovery.mostFavorited,
         ...discovery.mostWatched,
       ]
     : [];
@@ -72,12 +70,12 @@ export default async function CollectionsPage({
   const discoverySections = discovery
     ? [
         {
-          title: "Your favorites",
-          collections: discovery.userFavorites,
-        },
-        {
           title: "Recently added & updated",
           collections: discovery.recentlyUpdated,
+        },
+        {
+          title: "Most favorites",
+          collections: discovery.mostFavorited,
         },
         { title: "Most watched", collections: discovery.mostWatched },
       ].map((section) => ({
