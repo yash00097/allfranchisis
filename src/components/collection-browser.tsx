@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CollectionCard } from "@/components/collection-card";
+import { CollectionSearch } from "@/components/collection-search";
 import {
   Empty,
   EmptyDescription,
@@ -10,7 +11,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
 
 type Collection = {
   slug: string;
@@ -44,16 +44,7 @@ export function CollectionBrowser({
 
   return (
     <>
-      <div className="relative max-w-md">
-        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search collections"
-          className="pl-9"
-          aria-label="Search collections"
-        />
-      </div>
+      <CollectionSearch value={query} onChange={setQuery} />
       {filteredCollections.length ? (
         <div className="grid items-start gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {filteredCollections.map((collection) => (
