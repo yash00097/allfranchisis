@@ -83,10 +83,36 @@ model CollectionMedia {
   addedAt      DateTime @default(now())
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   mediaItem    MediaItem  @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  seasonGroups CollectionMediaSeasonGroup[]
 
   @@id([collectionId, mediaItemId])
   @@index([collectionId, displayOrder])
   @@index([mediaItemId])
+}
+
+model CollectionMediaSeasonGroup {
+  id              String                    @id @default(uuid())
+  collectionId    String
+  mediaItemId     String
+  groupOrder      Int
+  displayOrder    Int
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  collectionMedia CollectionMedia            @relation(fields: [collectionId, mediaItemId], references: [collectionId, mediaItemId], onDelete: Cascade)
+  seasons         CollectionMediaSeason[]
+
+  @@unique([collectionId, mediaItemId, groupOrder])
+  @@index([collectionId, displayOrder])
+  @@index([collectionId, mediaItemId])
+}
+
+model CollectionMediaSeason {
+  groupId      String
+  seasonNumber Int
+  group        CollectionMediaSeasonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, seasonNumber])
+  @@index([seasonNumber])
 }
 
 model UserCollectionStatus {

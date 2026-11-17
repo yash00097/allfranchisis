@@ -30,7 +30,13 @@ export async function listCollectionsForManager() {
   return getPrismaClient().collection.findMany({
     include: {
       media: {
-        include: { mediaItem: true },
+        include: {
+          mediaItem: true,
+          seasonGroups: {
+            include: { seasons: true },
+            orderBy: { displayOrder: "asc" },
+          },
+        },
         orderBy: { displayOrder: "asc" },
       },
     },
@@ -43,7 +49,13 @@ export async function getCollectionBySlug(slug: string) {
     where: { slug },
     include: {
       media: {
-        include: { mediaItem: true },
+        include: {
+          mediaItem: true,
+          seasonGroups: {
+            include: { seasons: true },
+            orderBy: { displayOrder: "asc" },
+          },
+        },
         orderBy: { displayOrder: "asc" },
       },
     },

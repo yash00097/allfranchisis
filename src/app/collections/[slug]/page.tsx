@@ -32,7 +32,34 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       ])
     : [null, false];
 
-  const media = collection.media.map(({ mediaItem }) => mediaItem);
+  const media = collection.media
+    .flatMap(({ mediaItem, displayOrder, seasonGroups }) =>
+      seasonGroups.length
+        ? seasonGroups.map((group) => ({
+            ...mediaItem,
+            displayKey: `group:${group.id}`,
+            displayOrder: group.displayOrder,
+            seasonLabel:
+              group.seasons.length === 1
+                ? group.seasons[0].seasonNumber === 0
+                  ? "Specials"
+                  : `Season ${group.seasons[0].seasonNumber}`
+                : `Seasons ${Math.min(
+                    ...group.seasons.map((season) => season.seasonNumber),
+                  )}-${Math.max(
+                    ...group.seasons.map((season) => season.seasonNumber),
+                  )}`,
+          }))
+        : [
+            {
+              ...mediaItem,
+              displayKey: `media:${mediaItem.id}`,
+              displayOrder,
+              seasonLabel: "",
+            },
+          ],
+    )
+    .sort((left, right) => left.displayOrder - right.displayOrder);
   const movies = media.filter((item) => item.mediaType === "MOVIE").length;
   const shows = media.filter((item) => item.mediaType === "TV").length;
   const backdrop = collection.backdropUrl?.startsWith("http")

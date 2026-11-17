@@ -29,6 +29,9 @@ type Filter = (typeof filters)[number]["value"];
 type Sort = "ORDER" | "ALPHABETICAL" | "RELEASE" | "RATING";
 
 type Media = {
+  displayKey: string;
+  displayOrder: number;
+  seasonLabel: string | null;
   tmdbId: number;
   mediaType: MediaType;
   title: string;
@@ -133,7 +136,7 @@ export function CollectionMediaBrowser({
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           {visibleMedia.map((item) => (
             <MediaCard
-              key={`${item.mediaType}-${item.tmdbId}`}
+              key={item.displayKey}
               media={item}
               collectionSlug={collectionSlug}
             />

@@ -12,6 +12,7 @@ import {
   updateCollection,
 } from "@/app/dashboard/collections/actions";
 import { GenreMultiselect } from "@/components/genre-multiselect";
+import { SeasonSeparationDialog } from "@/components/season-separation-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,30 @@ type ManagerMedia = {
   mediaType: "MOVIE" | "TV";
   title: string;
   posterPath: string | null;
+  displayOrder: number;
+  seasonCount: number | null;
+  seasonGroups: SeasonGroup[];
+};
+
+type SeasonGroup = {
+  id: string;
+  groupOrder: number;
+  displayOrder: number;
+  seasonNumbers: number[];
+};
+
+type ManagerEntry = {
+  key: string;
+  mediaItemId: string;
+  tmdbId: number;
+  mediaType: "MOVIE" | "TV";
+  title: string;
+  posterPath: string | null;
+  seasonCount: number | null;
+  seasonGroups: SeasonGroup[];
+  seasonNumbers: number[];
+  groupId: string | null;
+  displayOrder: number;
 };
 
 type ManagerCollection = {
@@ -266,7 +291,7 @@ export function CollectionManager({
 
       {activeCollection ? (
         <ManagedCollection
-          key={`${activeCollection.id}-${activeCollection.name}-${activeCollection.slug}-${(activeCollection.genres ?? []).join(",")}-${activeCollection.media.map((item) => item.id).join(",")}`}
+          key={`${activeCollection.id}-${activeCollection.name}-${activeCollection.slug}-${(activeCollection.genres ?? []).join(",")}-${activeCollection.media.map((item) => `${item.id}:${item.seasonGroups.map((group) => `${group.id}-${group.seasonNumbers.join(".")}`).join("|")}`).join(",")}`}
           collection={activeCollection}
           handleMutation={handleMutation}
         />
@@ -295,11 +320,13 @@ function ManagedCollection({
     formData: FormData,
   ) => Promise<void>;
 }) {
-  const [media, setMedia] = useState(collection.media);
-  const initialMediaIds = collection.media.map((item) => item.id);
+  const router = useRouter();
+  const initialEntries = buildEntries(collection.media);
+  const [entries, setEntries] = useState(initialEntries);
+  const initialEntryKeys = initialEntries.map((entry) => entry.key);
   const mediaOrderChanged =
-    media.length !== initialMediaIds.length ||
-    media.some((item, index) => item.id !== initialMediaIds[index]);
+    entries.length !== initialEntryKeys.length ||
+    entries.some((entry, index) => entry.key !== initialEntryKeys[index]);
 
   const initialDraft = {
     name: collection.name,
@@ -381,59 +408,93 @@ function ManagedCollection({
         </form>
         <div className="flex flex-col gap-2 border-t pt-4">
           <h3 className="font-semibold">Media order</h3>
-          {media.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-3 border p-2">
-              <div className="size-10 shrink-0 overflow-hidden bg-muted">
-                {item.posterPath ? (
-                  <img
-                    src={tmdbImage(item.posterPath, "w92") ?? undefined}
-                    alt=""
-                    className="h-full w-full object-cover"
+          {entries.map((entry, index) => {
+            const media = collection.media.find(
+              (item) => item.id === entry.mediaItemId,
+            );
+            if (!media) return null;
+            const isFirstGroup =
+              !entry.groupId ||
+              entry.seasonGroups.every((group) => group.id !== entry.groupId) ||
+              entry.seasonGroups[0]?.id === entry.groupId;
+            return (
+              <div
+                key={entry.key}
+                className="flex items-center gap-3 border p-2"
+              >
+                <div className="size-10 shrink-0 overflow-hidden bg-muted">
+                  {entry.posterPath ? (
+                    <img
+                      src={tmdbImage(entry.posterPath, "w92") ?? undefined}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+                <span className="min-w-0 flex-1 truncate">
+                  {entry.title}
+                  {entry.seasonNumbers.length
+                    ? ` (${formatSeasonRange(entry.seasonNumbers)})`
+                    : ""}
+                </span>
+                {media.mediaType === "TV" &&
+                (media.seasonCount ?? 0) > 0 &&
+                isFirstGroup ? (
+                  <SeasonSeparationDialog
+                    collectionId={collection.id}
+                    mediaItemId={media.id}
+                    title={media.title}
+                    seasonCount={media.seasonCount}
+                    seasonGroups={media.seasonGroups}
+                    onChanged={() => router.refresh()}
                   />
                 ) : null}
-              </div>
-              <span className="min-w-0 flex-1 truncate">{item.title}</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={index === 0}
-                onClick={() => setMedia(move(media, index, -1))}
-                title="Move up"
-              >
-                ↑
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={index === media.length - 1}
-                onClick={() => setMedia(move(media, index, 1))}
-                title="Move down"
-              >
-                ↓
-              </Button>
-              <form
-                action={(formData) =>
-                  handleMutation(removeMediaFromCollection, formData)
-                }
-              >
-                <input
-                  type="hidden"
-                  name="collectionId"
-                  value={collection.id}
-                />
-                <input type="hidden" name="mediaItemId" value={item.id} />
-                <Button type="submit" size="sm" variant="destructive">
-                  Remove
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={index === 0}
+                  onClick={() => setEntries(move(entries, index, -1))}
+                  title="Move up"
+                >
+                  ↑
                 </Button>
-              </form>
-            </div>
-          ))}
-          {media.length ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={index === entries.length - 1}
+                  onClick={() => setEntries(move(entries, index, 1))}
+                  title="Move down"
+                >
+                  ↓
+                </Button>
+                <form
+                  action={(formData) =>
+                    handleMutation(removeMediaFromCollection, formData)
+                  }
+                >
+                  <input
+                    type="hidden"
+                    name="collectionId"
+                    value={collection.id}
+                  />
+                  <input
+                    type="hidden"
+                    name="mediaItemId"
+                    value={entry.mediaItemId}
+                  />
+                  <Button type="submit" size="sm" variant="destructive">
+                    Remove
+                  </Button>
+                </form>
+              </div>
+            );
+          })}
+          {entries.length ? (
             <MediaOrderForm
               collectionId={collection.id}
-              media={media}
+              entries={entries}
               changed={mediaOrderChanged}
             />
           ) : (
@@ -459,11 +520,11 @@ function ManagedCollection({
 
 function MediaOrderForm({
   collectionId,
-  media,
+  entries,
   changed,
 }: {
   collectionId: string;
-  media: ManagerMedia[];
+  entries: ManagerEntry[];
   changed: boolean;
 }) {
   const router = useRouter();
@@ -473,7 +534,10 @@ function MediaOrderForm({
   function saveOrder() {
     const formData = new FormData();
     formData.set("collectionId", collectionId);
-    formData.set("mediaItemIds", JSON.stringify(media.map((item) => item.id)));
+    formData.set(
+      "mediaKeys",
+      JSON.stringify(entries.map((entry) => entry.key)),
+    );
     setStatus("idle");
     startSaving(async () => {
       try {
@@ -510,6 +574,49 @@ function MediaOrderForm({
       ) : null}
     </div>
   );
+}
+
+function buildEntries(media: ManagerMedia[]): ManagerEntry[] {
+  return media
+    .flatMap<ManagerEntry>((item) =>
+      item.seasonGroups.length
+        ? item.seasonGroups.map((group) => ({
+            key: `group:${group.id}`,
+            mediaItemId: item.id,
+            tmdbId: item.tmdbId,
+            mediaType: item.mediaType,
+            title: item.title,
+            posterPath: item.posterPath,
+            seasonCount: item.seasonCount,
+            seasonGroups: item.seasonGroups,
+            seasonNumbers: group.seasonNumbers,
+            groupId: group.id,
+            displayOrder: group.displayOrder,
+          }))
+        : [
+            {
+              key: `media:${item.id}`,
+              mediaItemId: item.id,
+              tmdbId: item.tmdbId,
+              mediaType: item.mediaType,
+              title: item.title,
+              posterPath: item.posterPath,
+              seasonCount: item.seasonCount,
+              seasonGroups: item.seasonGroups,
+              seasonNumbers: [],
+              groupId: null,
+              displayOrder: item.displayOrder,
+            },
+          ],
+    )
+    .sort((left, right) => left.displayOrder - right.displayOrder);
+}
+
+function formatSeasonRange(seasons: number[]) {
+  if (seasons.length === 1) {
+    return seasons[0] === 0 ? "Specials" : `Season ${seasons[0]}`;
+  }
+  return `Seasons ${seasons[0]}-${seasons[seasons.length - 1]}`;
 }
 
 function Field({

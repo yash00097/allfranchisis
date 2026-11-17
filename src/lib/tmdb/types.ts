@@ -38,6 +38,16 @@ export type TmdbTv = TmdbListResult & {
   genres?: TmdbGenre[];
   number_of_seasons?: number;
   number_of_episodes?: number;
+  seasons?: TmdbSeasonSummary[];
+};
+
+export type TmdbSeasonSummary = {
+  id: number;
+  season_number: number;
+  name?: string;
+  air_date?: string | null;
+  episode_count?: number;
+  poster_path?: string | null;
 };
 
 export type TmdbEpisode = {

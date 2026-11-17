@@ -55,13 +55,25 @@ export default async function ManageCollectionsPage() {
           genres: collection.genres ?? [],
           coverImageUrl: collection.coverImageUrl,
           backdropUrl: collection.backdropUrl,
-          media: collection.media.map(({ mediaItem }) => ({
-            id: mediaItem.id,
-            tmdbId: mediaItem.tmdbId,
-            mediaType: mediaItem.mediaType,
-            title: mediaItem.title,
-            posterPath: mediaItem.posterPath,
-          })),
+          media: collection.media.map(
+            ({ mediaItem, displayOrder, seasonGroups }) => ({
+              id: mediaItem.id,
+              tmdbId: mediaItem.tmdbId,
+              mediaType: mediaItem.mediaType,
+              title: mediaItem.title,
+              posterPath: mediaItem.posterPath,
+              displayOrder,
+              seasonCount: mediaItem.seasonCount,
+              seasonGroups: seasonGroups.map((group) => ({
+                id: group.id,
+                groupOrder: group.groupOrder,
+                displayOrder: group.displayOrder,
+                seasonNumbers: group.seasons
+                  .map((season) => season.seasonNumber)
+                  .sort((left, right) => left - right),
+              })),
+            }),
+          ),
         }))}
       />
     </main>

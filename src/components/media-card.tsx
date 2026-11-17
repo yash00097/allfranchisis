@@ -6,6 +6,9 @@ import type { MediaType } from "@/generated/prisma/client";
 
 type MediaCardProps = {
   media: {
+    displayKey?: string;
+    displayOrder?: number;
+    seasonLabel?: string | null;
     tmdbId: number;
     mediaType: MediaType;
     title: string;
@@ -52,6 +55,7 @@ export function MediaCard({ media, collectionSlug }: MediaCardProps) {
           </div>
           <h2 className="line-clamp-2 font-heading font-semibold">
             {media.title}
+            {media.seasonLabel ? ` (${media.seasonLabel})` : ""}
           </h2>
           <div className="flex justify-between gap-2 text-xs text-muted-foreground">
             <span>{year ?? "Year unavailable"}</span>
