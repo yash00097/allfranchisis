@@ -67,7 +67,7 @@ src/
   lib/
     prisma.ts     # Shared PrismaClient (pg adapter, Neon pooler) via getPrismaClient()
     auth/         # Clerk → User sync, collection-manager gating
-    collections/  # Collection read queries; cache.ts = unstable_cache tags + invalidation
+    collections/  # Collection read queries (incl. landing-queries.ts); cache.ts = unstable_cache tags + invalidation
     tmdb/         # Server-only TMDB service, image helpers, types
   generated/
     prisma/       # Generated Prisma Client (gitignored — never edit by hand)
@@ -247,16 +247,17 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
 | `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
 
-Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, fixed `h-16`, logo + Collections + theme + auth), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`In Progress`, `Completed`, `Favorites`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The hero subtracts the landing header height via `min-h-[calc(100dvh-4rem)]` (`LandingHeader` is `h-16`) — changing the landing header height breaks that offset.
+Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, a floating translucent bar fixed `top-3`, logo + Collections + theme + auth, with a full-height mobile menu panel), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`In Progress`, `Completed`, `Favorites`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The landing header overlays the page (it is not in flow); the hero is `min-h-dvh` with `pt-32` to### Home (`/`)
 
-### Home (`/`)
+Marketing landing page, reachable by direct URL only and only for signed-out visitors (`src/proxy.ts` redirects signed-in users to `/collections`) — the default home is `/collections`. `force-dynamic` Server Component built to the `.claude/skills/landing-page-design` rules, with a hybrid visual: flat black/white landing surfaces plus the app's red `primary` and 0px radius.
 
-Marketing landing page, reachable by direct URL only and only for signed-out visitors (`src/proxy.ts` redirects signed-in users to `/collections`) — the default home is `/collections`. Full-height hero over a decorative background carousel.
+- Data comes from `getLandingData()` (`src/lib/collections/landing-queries.ts`, `unstable_cache` 5 min, tags `collections` + `collection-discovery`): collection/movie/TV counts for media in at least one collection, up to 28 posters by TMDB vote count, and the largest collection's first 8 entries. The page also reads `listCollectionDiscovery()` and `listCollectionGenres()`. If any read throws, the error goes to Sentry and the page renders without data-driven sections.
+- Sections in order: hero over `PosterWall`, recently updated collections, problem/solution with the featured collection's watch order, four benefits, `TaglineReveal`, three steps, live library counts + genre chips + most favorited, FAQ (`<details>` + FAQPage JSON-LD), final CTA, footer with TMDB attribution. The single CTA is "Explore collections" → `/collections`; account copy is "Browse without an account. Create an account to track your progress." Do not claim the account is free, and do not add invented stats or testimonials.
+- Landing components live in `src/components/landing/`: `font.ts` (Geist via `next/font/google`, applied only to the landing page and `LandingHeader`), `poster-wall.tsx` (server, `aria-hidden` tilted poster columns that drift with CSS), `reveal.tsx` (client, IntersectionObserver scroll reveal, once), `tagline-reveal.tsx` (client, word-by-word opacity driven by a `requestAnimationFrame`-throttled scroll listener).
+- Landing styles are in `src/app/globals.css` under "LANDING PAGE": `--landing-*` color tokens (exposed as `bg-landing-bg`, `text-landing-fg`, etc.), named text-style utilities (`heading-1`…`heading-6`, `title-*`, `body-*`, `button-*`, `caption-*`), the hero gradient text, and `landing-*` motion classes using `cubic-bezier(0.22, 1, 0.36, 1)`. All motion respects `prefers-reduced-motion`.
+- `HomeCarousel` and the `.home-carousel*` CSS were removed. `public/franchise/1..4.png` are no longer referenced.
 
-- `HomeCarousel` (`"use client"`) is `aria-hidden` — purely visual, no controls, no dots. It autoplays every 5s (`AUTOPLAY_DELAY`), sliding 4 images listed in the `franchiseImages` array (`public/franchise/1..4.png`). The track is tripled (last + list + list) to fake infinite scroll and snaps back on `transitionEnd`.
-- It honors `prefers-reduced-motion` by disabling autoplay, and slide width is responsive: `68vw` mobile, `48vw` ≤1024px, `34vw` wider.
-- **All carousel styling is in `src/app/globals.css` under the `.home-carousel*` selectors**, not in the component — restyling the hero means editing both files. `.home-carousel__overlay` (plus a `.dark` variant) darkens the images for text contrast.
-- Foreground content is a `max-w-7xl` column: square primary-colored `Library` icon tile, uppercase `AllFranchisis` kicker, `font-heading` h1 "Find the stories that belong together." (5xl → 7xl), muted lede paragraph, and a primary `buttonVariants` link "Explore collections" with an `ArrowRight`.
+ with an `ArrowRight`.
 
 ### Collections (`/collections`)
 
