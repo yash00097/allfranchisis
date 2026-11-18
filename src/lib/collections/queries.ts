@@ -1,16 +1,48 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import type { MediaType } from "@/generated/prisma/client";
+import { COLLECTIONS_TAG, reviveDates } from "@/lib/collections/cache";
 import {
   COLLECTION_GENRES,
   type CollectionGenre,
 } from "@/lib/collections/genres";
 import { getPrismaClient } from "@/lib/prisma";
 
+const cacheOptions = { tags: [COLLECTIONS_TAG], revalidate: 3600 };
+
 export async function listCollections(
   options: { genre?: CollectionGenre } = {},
 ) {
   const { genre } = options;
+  return reviveDates(
+    await unstable_cache(
+      () => readCollections(genre),
+      ["collections", genre ?? "all"],
+      cacheOptions,
+    )(),
+  );
+}
+
+export async function listCollectionGenres(): Promise<CollectionGenre[]> {
+  return unstable_cache(
+    readCollectionGenres,
+    ["collection-genres"],
+    cacheOptions,
+  )();
+}
+
+export async function getCollectionBySlug(slug: string) {
+  return reviveDates(
+    await unstable_cache(
+      () => readCollectionBySlug(slug),
+      ["collection-by-slug", slug],
+      cacheOptions,
+    )(),
+  );
+}
+
+function readCollections(genre: CollectionGenre | undefined) {
   return getPrismaClient().collection.findMany({
     where: genre ? { genres: { has: genre } } : undefined,
     include: { _count: { select: { media: true } } },
@@ -18,7 +50,7 @@ export async function listCollections(
   });
 }
 
-export async function listCollectionGenres(): Promise<CollectionGenre[]> {
+async function readCollectionGenres(): Promise<CollectionGenre[]> {
   const rows = await getPrismaClient().collection.findMany({
     select: { genres: true },
   });
@@ -44,7 +76,7 @@ export async function listCollectionsForManager() {
   });
 }
 
-export async function getCollectionBySlug(slug: string) {
+function readCollectionBySlug(slug: string) {
   return getPrismaClient().collection.findUnique({
     where: { slug },
     include: {

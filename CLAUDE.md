@@ -36,9 +36,9 @@ Next.js 16 App Router, React Server Components by default. Request flow:
 
 Layers under `src/lib/` (each DB/auth/TMDB module imports `server-only`):
 
-- `prisma.ts` — `getPrismaClient()`, the single lazily-created `PrismaClient` with the `PrismaNeon` adapter, memoized on `globalThis` for dev hot-reload. Call it; never construct a client elsewhere.
+- `prisma.ts` — `getPrismaClient()`, the single lazily-created `PrismaClient` with the `PrismaPg` adapter (`@prisma/adapter-pg`) on Neon's pooled endpoint, memoized on `globalThis` for dev hot-reload. Call it; never construct a client elsewhere.
 - `auth/` — `upsertClerkUser` (idempotent, resolves clerkId/email collisions in a transaction), `syncCurrentUser` (lazy sync from `currentUser()`), `collection-manager` (`requireCollectionManager` / `isCollectionManager`), `current-user` (`getCurrentUser` / `requireCurrentUser` — the signed-in `User` row, lazily synced).
-- `collections/queries.ts` — read queries (`listCollections`, `getCollectionBySlug`, ...), re-exported from `lib/collections`.
+- `collections/queries.ts` — read queries (`listCollections`, `getCollectionBySlug`, ...), re-exported from `lib/collections`. Public reads (and `listCollectionDiscovery`) are wrapped in `unstable_cache` with tags from `collections/cache.ts` (`collections`, `collection-discovery`); results pass through `reviveDates` because the cache JSON-serializes `Date`s. Every collection mutation must call `invalidateCollections()`; never cache per-user reads.
 - `watch-status/queries.ts` — read queries for `UserCollectionStatus` (`getCollectionStatus`, `getCollectionStatuses`, `listUserCollectionsByStatus`); writes go through `setCollectionStatus`.
 - `tmdb/` — `service.ts` (fetch wrapper: 8s timeout, one retry on network error, `revalidate: 3600`), `images.ts` (`tmdbImage(path, size)` → full URL or `null`), `types.ts`.
 
@@ -64,3 +64,5 @@ Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 
 - Errors: unhandled errors go to Sentry automatically (`src/instrumentation*.ts`, `sentry.*.config.ts`, `next.config.ts` wraps with `withSentryConfig`). Report unexpected caught errors via `Sentry.captureException(error)`; handle expected validation failures locally.
 - Styling: Tailwind v4 via `@tailwindcss/postcss`, custom "DOOM 64" OKLCH palette in `src/app/globals.css`, dark mode via a `.dark` class toggled by `theme-toggle`. shadcn config is `style: base-nova` in `components.json`; primitives live in `src/components/ui` (Base UI-based).
 - Biome is the only linter/formatter; `lint` and `typecheck` are separate.
+- Fonts: `src/app/layout.tsx` loads no web fonts. `--font-sans` names `"Oxanium"`, which is not loaded, so text uses the system `sans-serif` fallback. Adding a font loader changes the UI.
+- Functions are pinned to `cle1` in `vercel.json` to sit next to Neon `us-east-2`; change both together.

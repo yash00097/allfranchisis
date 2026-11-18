@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CollectionCard } from "@/components/collection-card";
+import { CollectionCard, imagePriorityFor } from "@/components/collection-card";
 import { CollectionSearch } from "@/components/collection-search";
 import {
   Empty,
@@ -47,9 +47,12 @@ export function CollectionBrowser({
       <CollectionSearch value={query} onChange={setQuery} />
       {filteredCollections.length ? (
         <div className="grid items-start gap-5 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredCollections.map((collection) => (
+          {filteredCollections.map((collection, index) => (
             <div key={collection.slug} className="mx-auto w-[70%] sm:w-full">
-              <CollectionCard collection={collection} />
+              <CollectionCard
+                collection={collection}
+                imagePriority={imagePriorityFor(index)}
+              />
             </div>
           ))}
         </div>

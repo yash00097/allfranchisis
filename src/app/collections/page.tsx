@@ -30,13 +30,11 @@ export default async function CollectionsPage({
 }) {
   const { genre: rawGenre } = await searchParams;
   const activeGenre = isCollectionGenre(rawGenre) ? rawGenre : null;
-  const [user, genres] = await Promise.all([
+  const [user, genres, genreCollections, discovery] = await Promise.all([
     getCurrentUser(),
     listCollectionGenres(),
-  ]);
-  const [genreCollections, discovery] = await Promise.all([
-    activeGenre ? listCollections({ genre: activeGenre }) : Promise.resolve([]),
-    activeGenre ? Promise.resolve(null) : listCollectionDiscovery(),
+    activeGenre ? listCollections({ genre: activeGenre }) : [],
+    activeGenre ? null : listCollectionDiscovery(),
   ]);
   const discoveryCollections = discovery
     ? [

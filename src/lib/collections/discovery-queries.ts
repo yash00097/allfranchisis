@@ -1,10 +1,25 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import {
+  COLLECTIONS_TAG,
+  DISCOVERY_TAG,
+  reviveDates,
+} from "@/lib/collections/cache";
 import { getPrismaClient } from "@/lib/prisma";
 
 const mediaCount = { _count: { select: { media: true } } } as const;
 
 export async function listCollectionDiscovery() {
+  return reviveDates(
+    await unstable_cache(readCollectionDiscovery, ["collection-discovery"], {
+      tags: [COLLECTIONS_TAG, DISCOVERY_TAG],
+      revalidate: 300,
+    })(),
+  );
+}
+
+async function readCollectionDiscovery() {
   const prisma = getPrismaClient();
   const [recentlyUpdated, favoriteGroups, watchedGroups] = await Promise.all([
     prisma.collection.findMany({

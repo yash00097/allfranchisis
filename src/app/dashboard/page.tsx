@@ -1,14 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { syncCurrentUser } from "@/lib/auth/sync-current-user";
 import { isCollectionManager } from "@/lib/auth/collection-manager";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   await auth.protect();
-  const user = await syncCurrentUser();
+  const user = await getCurrentUser();
   const canManageCollections = await isCollectionManager();
 
   return (

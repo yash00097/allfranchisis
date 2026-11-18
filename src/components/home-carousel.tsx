@@ -78,7 +78,7 @@ export function HomeCarousel() {
               src={image.src}
               alt={image.alt}
               fill
-              priority={index < 3}
+              preload={index < 3}
               sizes="(max-width: 640px) 68vw, (max-width: 1024px) 48vw, 34vw"
               className="object-cover"
             />

@@ -9,6 +9,7 @@ import {
   getTvDetails,
   getTvSeasonDetails,
   tmdbImage,
+  tmdbSrcSet,
 } from "@/lib/tmdb";
 
 type MediaDetailViewProps = {
@@ -51,7 +52,8 @@ export async function MediaDetailView({
     return (
       <MediaShell
         title={movie.title}
-        backdrop={tmdbImage(movie.backdrop_path, "original")}
+        backdrop={tmdbImage(movie.backdrop_path, "w1280")}
+        backdropSrcSet={tmdbSrcSet(movie.backdrop_path, [780, 1280])}
         poster={tmdbImage(movie.poster_path, "w500")}
         backHref={backHref}
         backLabel={backLabel}
@@ -92,7 +94,8 @@ export async function MediaDetailView({
   return (
     <MediaShell
       title={tv.name}
-      backdrop={tmdbImage(tv.backdrop_path, "original")}
+      backdrop={tmdbImage(tv.backdrop_path, "w1280")}
+      backdropSrcSet={tmdbSrcSet(tv.backdrop_path, [780, 1280])}
       poster={tmdbImage(tv.poster_path, "w500")}
       alignPosterTop
       backHref={backHref}
@@ -146,6 +149,10 @@ export async function MediaDetailView({
                 {episode.still_path ? (
                   <img
                     src={tmdbImage(episode.still_path, "w300") ?? undefined}
+                    loading="lazy"
+                    decoding="async"
+                    width={300}
+                    height={169}
                     alt=""
                     className="h-full w-full object-cover"
                   />
@@ -177,6 +184,7 @@ export async function MediaDetailView({
 function MediaShell({
   title,
   backdrop,
+  backdropSrcSet,
   poster,
   alignPosterTop = false,
   backHref,
@@ -185,6 +193,7 @@ function MediaShell({
 }: {
   title: string;
   backdrop: string | null;
+  backdropSrcSet?: string;
   poster: string | null;
   alignPosterTop?: boolean;
   backHref: string;
@@ -197,6 +206,9 @@ function MediaShell({
         {backdrop ? (
           <img
             src={backdrop}
+            srcSet={backdropSrcSet}
+            sizes={backdropSrcSet ? "100vw" : undefined}
+            fetchPriority="high"
             alt=""
             className="absolute inset-0 -z-20 h-full w-full object-cover"
           />
@@ -208,6 +220,7 @@ function MediaShell({
           {poster ? (
             <img
               src={poster}
+              fetchPriority="high"
               alt={`${title} poster`}
               className="aspect-2/3 w-48 object-cover shadow-lg"
             />

@@ -54,7 +54,7 @@ export function AppSidebar({
               <SidebarMenuButton
                 size="lg"
                 tooltip="AllFranchisis"
-                render={<Link href="/collections" />}
+                render={<Link href="/collections" prefetch />}
                 onClick={() => {
                   if (isMobile) setOpenMobile(false);
                 }}
@@ -116,7 +116,7 @@ export function AppSidebar({
                         isActive={active}
                         aria-current={active ? "page" : undefined}
                         tooltip={label}
-                        render={<Link href={href} />}
+                        render={<Link href={href} prefetch />}
                         onClick={() => {
                           if (isMobile) setOpenMobile(false);
                         }}

@@ -65,9 +65,9 @@ src/
     ui/           # shadcn/Base UI primitives (button, card, dialog, table, ...)
   hooks/          # Reusable client hooks (e.g. use-mobile.ts)
   lib/
-    prisma.ts     # Shared PrismaClient (Neon adapter) via getPrismaClient()
+    prisma.ts     # Shared PrismaClient (pg adapter, Neon pooler) via getPrismaClient()
     auth/         # Clerk → User sync, collection-manager gating
-    collections/  # Collection read queries
+    collections/  # Collection read queries; cache.ts = unstable_cache tags + invalidation
     tmdb/         # Server-only TMDB service, image helpers, types
   generated/
     prisma/       # Generated Prisma Client (gitignored — never edit by hand)
@@ -82,7 +82,7 @@ prisma7.config.ts # Prisma 7 config: schema path, migrations path, datasource ur
 Layer boundaries:
 - **UI** (`app/`, `components/`) — presentation only. Server Components by default; `"use client"` only when interactivity requires it.
 - **Server-side logic** — data fetching, mutations, validation. Runs on the server (Server Components, Route Handlers, Server Actions). Never expose `DATABASE_URL` or Prisma to the browser.
-- **Database access** (`lib/`) — a single shared Prisma Client exposed by `lib/prisma.ts` as `getPrismaClient()`, memoized on `globalThis` for dev hot-reload and wired to Neon through `@prisma/adapter-neon`. Never construct another client; every DB module imports `server-only`.
+- **Database access** (`lib/`) — a single shared Prisma Client exposed by `lib/prisma.ts` as `getPrismaClient()`, memoized on `globalThis` for dev hot-reload and wired to Neon's pooled endpoint through `@prisma/adapter-pg`. Never construct another client; every DB module imports `server-only`.
 - **External data** (`lib/tmdb/`) — server-only TMDB access (details, search, seasons, image URLs). All TMDB modules import `server-only`.
 - **Shared types** — colocate with the module that owns them; promote to a shared location only when reused across layers. Prefer Prisma-generated types.
 
@@ -124,7 +124,7 @@ Design principles for Phase 2:
 - **Phase 7:** Search, filtering, and discovery — not started as a route. Only client-side filtering exists (`CollectionBrowser` filters by name, `CollectionMediaBrowser` filters by type/animated and sorts by order/alpha/release/rating).
 - **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `In Progress`/`Completed` status (`UserCollectionStatus`, `/watching`, `/watched`) and independent collection favorites (`UserCollectionFavorite`, `/favorites`) are implemented and deployed. Per-user collections and reading lists do not exist. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
 - **Phase 9:** Admin tools and content management — early slice only. `/dashboard/collections` + `CollectionManager` cover collection CRUD, TMDB ingestion, and ordering for one hardcoded owner (`COLLECTION_MANAGER_CLERK_ID`). No general roles, moderation, or audit tooling.
-- **Phase 10:** Performance optimization, security, testing, and deployment — partial. Sentry is wired, images use Next `Image`/plain `img` with TMDB sizing, and TMDB reads are cached 1 hour; there is no test runner, no CI config, and no rate limiting.
+- **Phase 10:** Performance optimization, security, testing, and deployment — partial. Sentry is wired (client web vitals via default `browserTracingIntegration`, 10% sample). Functions run in `cle1` (`vercel.json`) next to Neon `us-east-2`. Public collection reads (`listCollections`, `listCollectionGenres`, `getCollectionBySlug`: 1 h; `listCollectionDiscovery`: 5 min) are cached server-side with `unstable_cache` in `src/lib/collections/`, tagged `collections` / `collection-discovery`; every manager mutation calls `invalidateCollections()`, and favorite/status actions expire `collection-discovery` via `revalidateTag(tag, { expire: 0 })`. Never cache per-user reads. Sidebar, mobile-logo and collection-card links use `prefetch`; `experimental.staleTimes.dynamic = 30` reuses dynamic pages client-side for 30 s. Images: TMDB backdrops `w1280` + `srcSet`, posters/covers `srcSet`/`sizes`, below-fold `loading="lazy"`, first collection card and heroes `fetchPriority="high"` (`CollectionCard` `imagePriority` / `imagePriorityFor`). TMDB reads are cached 1 hour. Benchmark plan and results: `docs/superpowers/plans/2026-11-18-site-performance.md`, `docs/perf/2026-11-site-performance-results.md`. There is no test runner, no CI config, and no rate limiting.
 
 ## 6. Coding Standards
 
@@ -290,7 +290,7 @@ Filter row — All / Movies / TV shows / Animated movies / Animated series — p
 
 ### Dashboard (`/dashboard`)
 
-`force-dynamic` + `auth.protect()`. Calls `syncCurrentUser()` (the lazy half of Clerk → `User` sync), greets the user by name, and shows a "Manage collections" link only when `isCollectionManager()` is true.
+`force-dynamic` + `auth.protect()`. Calls `getCurrentUser()` (DB row first; falls back to `syncCurrentUser()`, the lazy half of Clerk → `User` sync, only when the row is missing), greets the user by name, and shows a "Manage collections" link only when `isCollectionManager()` is true.
 
 ### Manager workspace (`/dashboard/collections`)
 

@@ -13,6 +13,7 @@ export function SiteHeader() {
         <Separator orientation="vertical" className="h-5 md:hidden" />
         <Link
           href="/collections"
+          prefetch
           className="flex items-center gap-2 font-semibold md:hidden"
         >
           <Image

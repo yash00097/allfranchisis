@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getCollectionBySlug } from "@/lib/collections";
 import { getCollectionFavorite } from "@/lib/favorites/queries";
-import { tmdbImage } from "@/lib/tmdb";
+import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb";
 import { getCollectionStatus } from "@/lib/watch-status/queries";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +21,12 @@ type CollectionPageProps = {
 
 export default async function CollectionPage({ params }: CollectionPageProps) {
   const { slug } = await params;
-  const collection = await getCollectionBySlug(slug);
+  const [collection, user] = await Promise.all([
+    getCollectionBySlug(slug),
+    getCurrentUser(),
+  ]);
   if (!collection) notFound();
 
-  const user = await getCurrentUser();
   const [viewerStatus, isFavorite] = user
     ? await Promise.all([
         getCollectionStatus({ userId: user.id, collectionId: collection.id }),
@@ -64,7 +66,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
   const shows = media.filter((item) => item.mediaType === "TV").length;
   const backdrop = collection.backdropUrl?.startsWith("http")
     ? collection.backdropUrl
-    : tmdbImage(collection.backdropUrl, "original");
+    : tmdbImage(collection.backdropUrl, "w1280");
   const cover = collection.coverImageUrl?.startsWith("http")
     ? collection.coverImageUrl
     : tmdbImage(collection.coverImageUrl, "w780");
@@ -75,6 +77,9 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
         {backdrop ? (
           <img
             src={backdrop}
+            srcSet={tmdbSrcSet(collection.backdropUrl, [780, 1280])}
+            sizes="100vw"
+            fetchPriority="high"
             alt=""
             className="absolute inset-0 -z-20 h-full w-full object-cover"
           />
@@ -84,6 +89,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
           {cover ? (
             <img
               src={cover}
+              fetchPriority="high"
               alt={`${collection.name} cover`}
               className="aspect-2/3 w-40 object-contain shadow-lg"
             />

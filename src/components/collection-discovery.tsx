@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CollectionCard } from "@/components/collection-card";
+import { CollectionCard, imagePriorityFor } from "@/components/collection-card";
 import { CollectionSearch } from "@/components/collection-search";
 import {
   Empty,
@@ -44,6 +44,10 @@ export function CollectionDiscovery({
     (section) => section.collections.length > 0,
   );
 
+  const firstSectionTitle = filteredSections.find(
+    (section) => section.collections.length,
+  )?.title;
+
   return (
     <>
       <CollectionSearch value={query} onChange={setQuery} />
@@ -57,10 +61,15 @@ export function CollectionDiscovery({
                 className="grid auto-cols-[70%] grid-flow-col gap-5 overflow-x-auto pb-2 sm:auto-cols-[calc((100%_-_2.5rem)/3)] lg:auto-cols-[calc((100%_-_3.75rem)/4)]"
                 role="region"
               >
-                {collections.slice(0, 4).map((collection) => (
+                {collections.slice(0, 4).map((collection, index) => (
                   <CollectionCard
                     key={collection.slug}
                     collection={collection}
+                    imagePriority={
+                      title === firstSectionTitle
+                        ? imagePriorityFor(index)
+                        : "lazy"
+                    }
                   />
                 ))}
               </div>

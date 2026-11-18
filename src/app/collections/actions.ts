@@ -1,7 +1,8 @@
 "use server";
 
 import * as Sentry from "@sentry/nextjs";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { DISCOVERY_TAG } from "@/lib/collections/cache";
 import { requireCurrentUser } from "@/lib/auth/current-user";
 import { getPrismaClient } from "@/lib/prisma";
 import { isWatchStatus } from "@/lib/watch-status/types";
@@ -40,6 +41,7 @@ export async function setCollectionStatus(formData: FormData): Promise<void> {
     });
   }
 
+  revalidateTag(DISCOVERY_TAG, { expire: 0 });
   revalidatePath("/collections");
   revalidatePath(`/collections/${slug}`);
   revalidatePath("/watching");
@@ -81,6 +83,7 @@ export async function setCollectionFavorite(
     return { error: "Could not update favorites. Please try again." };
   }
 
+  revalidateTag(DISCOVERY_TAG, { expire: 0 });
   revalidatePath("/collections");
   revalidatePath(`/collections/${slug}`);
   revalidatePath("/watching");

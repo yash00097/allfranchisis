@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { tmdbImage } from "@/lib/tmdb/images";
+import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb/images";
 import type { MediaType } from "@/generated/prisma/client";
 
 type MediaCardProps = {
@@ -37,6 +37,12 @@ export function MediaCard({ media, collectionSlug }: MediaCardProps) {
           {media.posterPath ? (
             <img
               src={tmdbImage(media.posterPath, "w500") ?? undefined}
+              srcSet={tmdbSrcSet(media.posterPath, [342, 500, 780])}
+              sizes="(min-width: 1280px) 230px, (min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+              width={500}
+              height={750}
+              loading="lazy"
+              decoding="async"
               alt={`${media.title} poster`}
               className="h-full w-full object-contain"
             />
