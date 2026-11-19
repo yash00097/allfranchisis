@@ -19,12 +19,20 @@ export default async function DashboardPage() {
         Your Clerk account is connected to your local profile.
       </p>
       {canManageCollections ? (
-        <Link
-          href="/dashboard/collections"
-          className={`${buttonVariants()} w-fit`}
-        >
-          Manage collections
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/collections"
+            className={`${buttonVariants()} w-fit`}
+          >
+            Manage collections
+          </Link>
+          <Link
+            href="/dashboard/franchises"
+            className={`${buttonVariants({ variant: "outline" })} w-fit`}
+          >
+            Manage franchises
+          </Link>
+        </div>
       ) : null}
     </main>
   );

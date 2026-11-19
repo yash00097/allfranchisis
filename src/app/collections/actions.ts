@@ -47,6 +47,7 @@ export async function setCollectionStatus(formData: FormData): Promise<void> {
   revalidatePath("/watching");
   revalidatePath("/watched");
   revalidatePath("/favorites");
+  revalidatePath("/franchises", "layout");
 }
 
 export async function setCollectionFavorite(
@@ -89,5 +90,6 @@ export async function setCollectionFavorite(
   revalidatePath("/watching");
   revalidatePath("/watched");
   revalidatePath("/favorites");
+  revalidatePath("/franchises", "layout");
   return { error: null };
 }

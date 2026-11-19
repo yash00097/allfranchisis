@@ -11,20 +11,9 @@ import {
   mapSeasonGroups,
   validateSeasonGroups,
 } from "@/lib/collections/season-groups";
+import { parseStringArray, slugify, text } from "@/lib/form-data";
 import { getPrismaClient } from "@/lib/prisma";
 import { getMovieDetails, getTvDetails, searchTmdb } from "@/lib/tmdb";
-
-function text(formData: FormData, field: string) {
-  return String(formData.get(field) ?? "").trim();
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 function dateOrNull(value: string | undefined) {
   return value ? new Date(`${value}T00:00:00.000Z`) : null;
@@ -40,17 +29,6 @@ function mediaKey(mediaItemId: string) {
 
 function groupKey(groupId: string) {
   return `group:${groupId}`;
-}
-
-function parseOrder(value: string) {
-  const parsed = JSON.parse(value) as unknown;
-  if (
-    !Array.isArray(parsed) ||
-    parsed.some((item) => typeof item !== "string")
-  ) {
-    throw new Error("Invalid collection order.");
-  }
-  return parsed;
 }
 
 async function getVisibleCollectionEntries(
@@ -458,8 +436,9 @@ export async function removeMediaFromCollection(formData: FormData) {
 export async function reorderCollectionMedia(formData: FormData) {
   await requireCollectionManager();
   const collectionId = text(formData, "collectionId");
-  const submitted = parseOrder(
+  const submitted = parseStringArray(
     text(formData, "mediaKeys") || text(formData, "mediaItemIds"),
+    "Invalid collection order.",
   );
   const prisma = getPrismaClient();
   const rows = await prisma.collectionMedia.findMany({

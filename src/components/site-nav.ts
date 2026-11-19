@@ -2,6 +2,7 @@ import {
   CheckCircle2,
   Clapperboard,
   Heart,
+  Layers,
   LayoutDashboard,
   PlayCircle,
 } from "lucide-react";
@@ -30,6 +31,13 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/collections",
         label: "Collections",
         icon: Clapperboard,
+        requiresAuth: false,
+        requiresManager: false,
+      },
+      {
+        href: "/franchises",
+        label: "Franchises",
+        icon: Layers,
         requiresAuth: false,
         requiresManager: false,
       },

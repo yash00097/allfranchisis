@@ -68,6 +68,7 @@ src/
     prisma.ts     # Shared PrismaClient (pg adapter, Neon pooler) via getPrismaClient()
     auth/         # Clerk → User sync, collection-manager gating
     collections/  # Collection read queries (incl. landing-queries.ts); cache.ts = unstable_cache tags + invalidation
+    franchises/   # Franchise read queries (cached, tags collections + franchises)
     tmdb/         # Server-only TMDB service, image helpers, types
   generated/
     prisma/       # Generated Prisma Client (gitignored — never edit by hand)
@@ -90,12 +91,13 @@ Path aliases: `@/*` → `./src/*` (see `tsconfig.json`).
 
 ## 4. Database Architecture
 
-The database layer currently contains the Phase 2 foundation, the Phase 3–4 catalog entities, and Phase 8 per-user collection watch status and favorites. Do not add entities from later phases without explicit authorization.
+The database layer currently contains the Phase 2 foundation, the Phase 3–4 catalog entities, the Phase 5 `Franchise` grouping, and Phase 8 per-user collection watch status and favorites. Do not add entities from later phases without explicit authorization.
 
 Implemented database surface:
 - PostgreSQL is configured through Prisma 7 and `prisma7.config.ts`. The schema declares no `datasource url`; the CLI reads it from `prisma7.config.ts` and the runtime supplies it to the Neon adapter.
-- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`), `20261013120000_add_user_collection_status` (`WatchStatus` enum, `UserCollectionStatus`), `20261022120000_add_user_collection_favorite` (`UserCollectionFavorite`; applied to Neon on October 25, 2026), `20261117104930_add_media_season_separation` (collection-scoped TV season groups).
+- Migrations: `20261002123421_init` (`User`), `20261002162635_add_clerk_identity` (Clerk linkage), `20261003170000_add_collections_media` (`Collection`, `MediaItem`, `CollectionMedia`, `MediaType` enum), `20261010120000_add_collection_genres` (`Collection.genres`), `20261013120000_add_user_collection_status` (`WatchStatus` enum, `UserCollectionStatus`), `20261022120000_add_user_collection_favorite` (`UserCollectionFavorite`; applied to Neon on October 25, 2026), `20261117104930_add_media_season_separation` (collection-scoped TV season groups), `20261119120000_add_franchises` (`Franchise`, `FranchiseCollection`; not yet applied to Neon).
 - Models: `User` (UUID id, unique `clerkId` and `email`, name, createdAt), `Collection` (unique `slug`, name, description, `genres String[]` drawn from the fixed TMDB genre list in `src/lib/collections/genres.ts`, optional cover/backdrop URLs), `MediaItem` (cached TMDB metadata, `@@unique([tmdbId, mediaType])`, enum `MediaType { MOVIE, TV }`), `CollectionMedia` (composite-PK join carrying `displayOrder`), `CollectionMediaSeasonGroup` (collection/media-scoped contiguous season group carrying global `displayOrder`), `CollectionMediaSeason` (season membership keyed by group and season number), `UserCollectionStatus` (per-user status for a whole `Collection`, composite PK `(userId, collectionId)`, `status WatchStatus { WATCHING | WATCHED }`, both FKs cascade — explicitly **not** per `MediaItem`).
+- `Franchise` (unique `slug`, name, description, optional cover/backdrop URLs) is the top-level grouping and contains **only collections** through `FranchiseCollection` (composite PK `(franchiseId, collectionId)`, `displayOrder`, `addedAt`, both FKs cascade). Many-to-many: one collection may sit in several franchises. Deleting a franchise removes join rows only; collections are kept. Reads are in `src/lib/franchises/queries.ts`; mutations are manager-gated Server Actions in `src/app/dashboard/franchises/actions.ts` that return `{ error?: string }` for expected failures.
 - Generated Prisma Client code lives under `src/generated/prisma` and must never be edited by hand.
 - `UserCollectionFavorite` stores collection favorites independently of watch status: composite PK `(userId, collectionId)`, `createdAt`, cascading User/Collection FKs, indexes `(userId, createdAt)` and `collectionId`. Relations are `User.collectionFavorites` and `Collection.userFavorites`.
 - Favorite reads in `src/lib/favorites/queries.ts` are server-only: single/batched membership and newest-first library reads with media counts. `setCollectionFavorite` in `src/app/collections/actions.ts` authenticates through `requireCurrentUser()`, resolves a slug, accepts exactly `"true"`/`"false"`, and uses idempotent create/delete writes scoped to the current user. Successful favorite/status changes refresh `/collections`, collection detail, `/watching`, `/watched`, and `/favorites`.
@@ -118,8 +120,8 @@ Design principles for Phase 2:
 - **Phase 1 — Foundation (complete):** Next.js + TypeScript + Tailwind v4 + Prisma 7 foundation.
 - **Phase 2 — Database architecture and Prisma schema design (complete):** PostgreSQL datasource, Prisma schema, generated client, and initial `User` migration are in place.
 - **Phase 3 — Authentication and user profiles (complete):** Clerk auth (`src/proxy.ts` middleware), webhook + lazy user sync into `User`, manager-gated `/dashboard`, sign-in/sign-up routes, Sentry wiring.
-- **Phase 4 — Franchise and media catalog (partial):** TMDB-backed `MediaItem` cache, media detail pages at `/media/[mediaType]/[tmdbId]`, editor-curated `Collection`/`CollectionMedia` and collection-scoped TV season separation surfaced at `/collections` and `/dashboard/collections`. No franchise hierarchy yet.
-- **Phase 5:** Media relationships and franchise hierarchy — not started. No relationship model, no franchise entity.
+- **Phase 4 — Franchise and media catalog (partial):** TMDB-backed `MediaItem` cache, media detail pages at `/media/[mediaType]/[tmdbId]`, editor-curated `Collection`/`CollectionMedia` and collection-scoped TV season separation surfaced at `/collections` and `/dashboard/collections`. Franchise grouping now lives in Phase 5.
+- **Phase 5:** Media relationships and franchise hierarchy — partial. `Franchise` groups collections (many-to-many, manager-ordered) at `/franchises`, `/franchises/[slug]`, managed at `/dashboard/franchises`. No universe level and no media relationship model (sequel/prequel/spin-off) yet.
 - **Phase 6:** Individual ratings and reviews — not started. Ratings shown in the UI are read-through TMDB scores, not stored user ratings.
 - **Phase 7:** Search, filtering, and discovery — not started as a route. Only client-side filtering exists (`CollectionBrowser` filters by name, `CollectionMediaBrowser` filters by type/animated and sorts by order/alpha/release/rating).
 - **Phase 8:** User collections, watchlists, and reading lists — partial. Per-user `In Progress`/`Completed` status (`UserCollectionStatus`, `/watching`, `/watched`) and independent collection favorites (`UserCollectionFavorite`, `/favorites`) are implemented and deployed. Per-user collections and reading lists do not exist. The underlying `Collection`/`CollectionMedia` entity is still a single editor-owned curated list, not per-user data.
@@ -162,7 +164,7 @@ Design principles for Phase 2:
 
 ## 8. Current Project Status
 
-**Phases 1–3 are complete. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; franchise hierarchy and user-owned collections do not. Phase 8 is partial: per-user In Progress/Completed status and independent favorites over collections are implemented and deployed; per-user collections and reading lists do not exist.**
+**Phases 1–3 are complete. Phase 5 is partial: franchises group collections; media relationships do not exist. Phase 4 is partial: TMDB-backed catalog browsing and editor-curated collections exist; user-owned collections do not. Phase 8 is partial: per-user In Progress/Completed status and independent favorites over collections are implemented and deployed; per-user collections and reading lists do not exist.**
 
 Completed:
 - [x] Next.js 16 App Router scaffold with TypeScript (strict), Tailwind v4, `@/*` alias.
@@ -180,6 +182,7 @@ Completed:
 - [x] Phase 4 partial: collection-scoped TV season groups with derived contiguous labels, public group display, independent global group ordering, explicit TMDB refresh, and append-to-final-group synchronization.
 - [x] Phase 8 partial: per-user `In Progress`/`Completed` status for whole collections (`UserCollectionStatus`), the user-gated `setCollectionStatus` Server Action, per-user status badges on `/collections`, the `CollectionStatusControl` in the collection hero, and signed-in `/watching` + `/watched` views.
 - [x] Phase 8 partial: independent collection favorites, user-gated `setCollectionFavorite`, reusable accessible hearts on collection cards/detail, protected `/favorites` with watch-status badges and newest-first order, and signed-in Favorites navigation. Favorite state comes from server revalidation; no optimistic state or extra client fetch.
+- [x] Phase 5 partial: `Franchise` + `FranchiseCollection` schema and migration `20261119120000_add_franchises` (created, **not yet deployed** to Neon), public `/franchises` + `/franchises/[slug]`, Franchises sidebar item, manager CRUD + ordering at `/dashboard/franchises`.
 
 Open items:
 - Verification update (October 25, 2026): `npx prisma migrate status` confirmed one pending migration, then the separately approved `npx prisma migrate deploy` applied `20261022120000_add_user_collection_favorite` successfully. All six migrations are now applied.
@@ -190,7 +193,7 @@ Open items:
 - [ ] No test runner is configured. Validation is `npm run typecheck`, `npm run lint`, `npm run build` (see §9).
 - [ ] TMDB credentials (`TMDB_API_Read_Access_Token` or `TMDB_API_Key`) must be present in `.env`; the service throws without them.
 
-**Current phase:** Phase 4 (partial) — catalog and collections; Phase 8 (partial) — per-user collection watch status and favorites. Next unstarted: Phase 5.
+**Current phase:** Phase 4 (partial) — catalog and collections; Phase 5 (partial) — franchises over collections; Phase 8 (partial) — per-user collection watch status and favorites. Next: Phase 5 media relationships, then Phase 6.
 
 Page-by-page UI inventory: see §11.
 
@@ -244,10 +247,13 @@ Every route is a Server Component. Client Components exist only where noted.
 | `/watching` | `src/app/watching/page.tsx` | Signed-in user's collections marked In Progress |
 | `/watched` | `src/app/watched/page.tsx` | Signed-in user's collections marked Completed |
 | `/favorites` | `src/app/favorites/page.tsx` | Signed-in user's favorite collections, newest first |
+| `/franchises` | `src/app/franchises/page.tsx` | Public franchise grid |
+| `/franchises/[slug]` | `src/app/franchises/[slug]/page.tsx` | One franchise + its ordered collections |
+| `/dashboard/franchises` | `src/app/dashboard/franchises/page.tsx` | Owner-only franchise manager |
 | `/media/[mediaType]/[tmdbId]` | `src/app/media/[mediaType]/[tmdbId]/page.tsx` | TMDB movie/TV detail |
 | `/sign-in`, `/sign-up` | `src/app/sign-in|sign-up/[[...sign-in|sign-up]]/page.tsx` | Clerk catch-all routes |
 
-Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, a floating translucent bar fixed `top-3`, logo + Collections + theme + auth, with a full-height mobile menu panel), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`), Your library (`In Progress`, `Completed`, `Favorites`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The landing header overlays the page (it is not in flow); the hero is `min-h-dvh` with `pt-32` to### Home (`/`)
+Shared chrome lives in `src/components/site-shell.tsx` (`SiteShell`, `"use client"`). It branches on `usePathname()`: `/` renders `LandingHeader` (`"use client"`, a floating translucent bar fixed `top-3`, logo + Collections + theme + auth, with a full-height mobile menu panel), while every other route renders the sidebar shell — `SidebarProvider` → `AppSidebar` (`collapsible="icon"`) plus a content column with the sticky `SiteHeader` (`SidebarTrigger`, theme) above the page. Nav items come from `src/components/site-nav.ts` (`NAV_GROUPS`): Browse (`Collections`, `Franchises`), Your library (`In Progress`, `Completed`, `Favorites`, signed-in only), Manage (`Dashboard`, manager only). Active state uses `isNavItemActive` (exact or prefix match on `pathname`). Sidebar collapsed state persists in the `sidebar_state` cookie, read server-side in `src/app/layout.tsx` and passed as `defaultSidebarOpen`. The landing page is reachable by direct URL only, and already-signed-in visitors are redirected to `/collections` by `src/proxy.ts`. The landing header overlays the page (it is not in flow); the hero is `min-h-dvh` with `pt-32` to### Home (`/`)
 
 Marketing landing page, reachable by direct URL only and only for signed-out visitors (`src/proxy.ts` redirects signed-in users to `/collections`) — the default home is `/collections`. `force-dynamic` Server Component built to the `.claude/skills/landing-page-design` rules, with a hybrid visual: flat black/white landing surfaces plus the app's red `primary` and 0px radius.
 
@@ -302,6 +308,10 @@ The create and edit forms both include a `GenreMultiselect` dropdown (`src/compo
 ### In Progress & Completed (`/watching`, `/watched`)
 
 Both are `force-dynamic` + `auth.protect()`, signed-in only (the header links and the `src/proxy.ts` matcher gate them). Each resolves the current user (`getCurrentUser()`) and loads that user's collections for its status via `listUserCollectionsByStatus` (`WATCHING` / `WATCHED`), tags each with its `status`, batch-loads favorite membership, and renders the shared `CollectionBrowser` under a "Your library" header with status-specific empty copy.
+
+### Franchises (`/franchises`, `/franchises/[slug]`, `/dashboard/franchises`)
+
+`/franchises` (`force-dynamic`) renders a `sm:3 / lg:4` grid of `FranchiseCard` (`src/components/franchise-card.tsx`, Server Component: cover, name, "N collections", `line-clamp-3` description) from cached `listFranchises()`, or an `Empty` "No franchises yet". `/franchises/[slug]` (`force-dynamic`, `notFound()` on unknown slug) shows a hero like collection detail (backdrop, scrim, cover, "All franchises" back link, collection-count badge, h1, description) and the franchise's collections in manager `displayOrder` through `CollectionBrowser`, with per-user status badges and favorite hearts batch-loaded like `/collections`. `setCollectionStatus`/`setCollectionFavorite` revalidate `/franchises` as a layout so hearts refresh there. `/dashboard/franchises` (`auth.protect()` + `isCollectionManager()`, owner-only notice otherwise) renders `FranchiseManager` (`"use client"`): create/edit/delete franchises, add collections from a select of non-members, remove, and up/down reorder with "Save collection order". Errors from actions render inline with `role="alert"`. `/dashboard` links to it as "Manage franchises".
 
 ### Favorites (`/favorites`)
 

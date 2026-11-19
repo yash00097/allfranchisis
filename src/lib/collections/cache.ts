@@ -4,12 +4,17 @@ import { revalidateTag } from "next/cache";
 
 export const COLLECTIONS_TAG = "collections";
 export const DISCOVERY_TAG = "collection-discovery";
+export const FRANCHISES_TAG = "franchises";
 
 const DATE_KEYS = new Set(["createdAt", "updatedAt", "releaseDate", "addedAt"]);
 
 // Every cached collection read carries COLLECTIONS_TAG, so one call covers all slugs.
 export function invalidateCollections() {
   revalidateTag(COLLECTIONS_TAG, { expire: 0 });
+}
+
+export function invalidateFranchises() {
+  revalidateTag(FRANCHISES_TAG, { expire: 0 });
 }
 
 // unstable_cache round-trips through JSON, which turns Date fields into strings.

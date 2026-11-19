@@ -46,8 +46,36 @@ model Collection {
   media         CollectionMedia[]
   userStatuses  UserCollectionStatus[]
   userFavorites UserCollectionFavorite[]
+  franchises    FranchiseCollection[]
 
   @@index([name])
+}
+
+model Franchise {
+  id            String                @id @default(uuid())
+  slug          String                @unique
+  name          String
+  description   String
+  coverImageUrl String?
+  backdropUrl   String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  collections   FranchiseCollection[]
+
+  @@index([name])
+}
+
+model FranchiseCollection {
+  franchiseId  String
+  collectionId String
+  displayOrder Int        @default(0)
+  addedAt      DateTime   @default(now())
+  franchise    Franchise  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([franchiseId, collectionId])
+  @@index([franchiseId, displayOrder])
+  @@index([collectionId])
 }
 
 model MediaItem {

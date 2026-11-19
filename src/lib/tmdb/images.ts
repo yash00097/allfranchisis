@@ -4,6 +4,10 @@ export function tmdbImage(path: string | null | undefined, size = "w500") {
   return path ? `${TMDB_IMAGE_BASE_URL}/${size}${path}` : null;
 }
 
+export function resolveImage(value: string | null | undefined, size: string) {
+  return value?.startsWith("http") ? value : tmdbImage(value, size);
+}
+
 // Absolute URLs come from non-TMDB hosts that have no size variants.
 export function tmdbSrcSet(
   path: string | null | undefined,
