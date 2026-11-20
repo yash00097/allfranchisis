@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CollectionFavoriteButton } from "@/components/collection-favorite-button";
 import { GenreBadges } from "@/components/genre-badges";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -86,19 +85,9 @@ export function CollectionCard({
             </span>
           </div>
         </Link>
-        <div className="flex items-start justify-between gap-3">
-          <Link href={href} prefetch className="min-w-0">
-            <GenreBadges genres={collection.genres} />
-          </Link>
-          {collection.isFavorite !== undefined ? (
-            <CollectionFavoriteButton
-              slug={collection.slug}
-              name={collection.name}
-              isFavorite={collection.isFavorite}
-              className="items-end"
-            />
-          ) : null}
-        </div>
+        <Link href={href} prefetch className="min-w-0">
+          <GenreBadges genres={collection.genres} />
+        </Link>
       </CardContent>
     </Card>
   );
