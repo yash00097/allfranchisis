@@ -31,9 +31,10 @@ export async function generateMetadata({
   if (!collection) return {};
 
   const description = collection.description.trim() || SITE_DESCRIPTION;
-  const image =
-    resolveImage(collection.backdropUrl, "w1280") ??
-    resolveImage(collection.coverImageUrl, "w780");
+  // Poster first: WhatsApp drops preview images over ~600 KB, and TMDB w500
+  // posters are ~60 KB while backdrops may be large external files.
+  const poster = resolveImage(collection.coverImageUrl, "w500");
+  const image = poster ?? resolveImage(collection.backdropUrl, "w1280");
   const images = image ? [image] : undefined;
 
   return {
@@ -41,7 +42,7 @@ export async function generateMetadata({
     description,
     openGraph: { title: collection.name, description, type: "website", images },
     twitter: {
-      card: image ? "summary_large_image" : "summary",
+      card: !poster && image ? "summary_large_image" : "summary",
       title: collection.name,
       description,
       images,
