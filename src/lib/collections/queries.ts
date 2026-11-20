@@ -11,14 +11,11 @@ import { getPrismaClient } from "@/lib/prisma";
 
 const cacheOptions = { tags: [COLLECTIONS_TAG], revalidate: 3600 };
 
-export async function listCollections(
-  options: { genre?: CollectionGenre } = {},
-) {
-  const { genre } = options;
+export async function listCollections() {
   return reviveDates(
     await unstable_cache(
-      () => readCollections(genre),
-      ["collections", genre ?? "all"],
+      readCollections,
+      ["collections", "all"],
       cacheOptions,
     )(),
   );
@@ -42,9 +39,8 @@ export async function getCollectionBySlug(slug: string) {
   );
 }
 
-function readCollections(genre: CollectionGenre | undefined) {
+function readCollections() {
   return getPrismaClient().collection.findMany({
-    where: genre ? { genres: { has: genre } } : undefined,
     include: { _count: { select: { media: true } } },
     orderBy: { name: "asc" },
   });

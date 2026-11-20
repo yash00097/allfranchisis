@@ -12,7 +12,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-type Collection = {
+export type BrowserCollection = {
   slug: string;
   name: string;
   description: string;
@@ -23,50 +23,79 @@ type Collection = {
   isFavorite?: boolean;
 };
 
-export function CollectionBrowser({
+export function filterByName<T extends { name: string }>(
+  collections: T[],
+  query: string,
+) {
+  const normalized = query.trim().toLowerCase();
+  return collections.filter((collection) =>
+    collection.name.toLowerCase().includes(normalized),
+  );
+}
+
+export function CollectionGrid({
   collections,
   emptyTitle = "No collections found",
   emptyDescription = "Try a different collection name.",
 }: {
-  collections: Collection[];
+  collections: BrowserCollection[];
+  emptyTitle?: string;
+  emptyDescription?: string;
+}) {
+  return collections.length ? (
+    <div className="grid items-start gap-5 sm:grid-cols-3 lg:grid-cols-4">
+      {collections.map((collection, index) => (
+        <div key={collection.slug} className="mx-auto w-[70%] sm:w-full">
+          <CollectionCard
+            collection={collection}
+            imagePriority={imagePriorityFor(index)}
+          />
+        </div>
+      ))}
+    </div>
+  ) : (
+    <Empty className="min-h-64 border">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Search />
+        </EmptyMedia>
+        <EmptyTitle>{emptyTitle}</EmptyTitle>
+        <EmptyDescription>{emptyDescription}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
+
+/**
+ * `searchPool` lets a filtered view (e.g. one genre) search beyond the
+ * collections it shows; it defaults to `collections`.
+ */
+export function CollectionBrowser({
+  collections,
+  searchPool,
+  emptyTitle,
+  emptyDescription,
+}: {
+  collections: BrowserCollection[];
+  searchPool?: BrowserCollection[];
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
   const [query, setQuery] = useState("");
-  const filteredCollections = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return normalized
-      ? collections.filter((collection) =>
-          collection.name.toLowerCase().includes(normalized),
-        )
-      : collections;
-  }, [collections, query]);
+  const searching = query.trim().length > 0;
+  const visible = useMemo(
+    () =>
+      searching ? filterByName(searchPool ?? collections, query) : collections,
+    [collections, searchPool, query, searching],
+  );
 
   return (
     <>
       <CollectionSearch value={query} onChange={setQuery} />
-      {filteredCollections.length ? (
-        <div className="grid items-start gap-5 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredCollections.map((collection, index) => (
-            <div key={collection.slug} className="mx-auto w-[70%] sm:w-full">
-              <CollectionCard
-                collection={collection}
-                imagePriority={imagePriorityFor(index)}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <Empty className="min-h-64 border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Search />
-            </EmptyMedia>
-            <EmptyTitle>{emptyTitle}</EmptyTitle>
-            <EmptyDescription>{emptyDescription}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
+      <CollectionGrid
+        collections={visible}
+        {...(searching ? {} : { emptyTitle, emptyDescription })}
+      />
     </>
   );
 }

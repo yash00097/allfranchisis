@@ -30,26 +30,13 @@ export default async function CollectionsPage({
 }) {
   const { genre: rawGenre } = await searchParams;
   const activeGenre = isCollectionGenre(rawGenre) ? rawGenre : null;
-  const [user, genres, genreCollections, discovery] = await Promise.all([
+  const [user, genres, allCollections, discovery] = await Promise.all([
     getCurrentUser(),
     listCollectionGenres(),
-    activeGenre ? listCollections({ genre: activeGenre }) : [],
+    listCollections(),
     activeGenre ? null : listCollectionDiscovery(),
   ]);
-  const discoveryCollections = discovery
-    ? [
-        ...discovery.recentlyUpdated,
-        ...discovery.mostFavorited,
-        ...discovery.mostWatched,
-      ]
-    : [];
-  const collections = activeGenre ? genreCollections : discoveryCollections;
-  const uniqueCollections = Array.from(
-    new Map(
-      collections.map((collection) => [collection.id, collection]),
-    ).values(),
-  );
-  const collectionIds = uniqueCollections.map((collection) => collection.id);
+  const collectionIds = allCollections.map((collection) => collection.id);
   const [statuses, favorites] = user
     ? await Promise.all([
         getCollectionStatuses({ userId: user.id, collectionIds }),
@@ -57,13 +44,17 @@ export default async function CollectionsPage({
       ])
     : [new Map<string, WatchStatus>(), new Set<string>()];
 
-  const collectionsWithStatus = uniqueCollections.map((collection) => ({
+  // Search spans every collection, not just the genre or discovery rows shown.
+  const searchPool = allCollections.map((collection) => ({
     ...collection,
     status: statuses.get(collection.id) ?? null,
     isFavorite: user ? favorites.has(collection.id) : undefined,
   }));
+  const collectionsWithStatus = activeGenre
+    ? searchPool.filter((collection) => collection.genres.includes(activeGenre))
+    : [];
   const collectionsById = new Map(
-    collectionsWithStatus.map((collection) => [collection.id, collection]),
+    searchPool.map((collection) => [collection.id, collection]),
   );
   const discoverySections = discovery
     ? [
@@ -104,9 +95,15 @@ export default async function CollectionsPage({
       <GenreFilterBar genres={genres} activeGenre={activeGenre} />
       {hasContent ? (
         activeGenre ? (
-          <CollectionBrowser collections={collectionsWithStatus} />
+          <CollectionBrowser
+            collections={collectionsWithStatus}
+            searchPool={searchPool}
+          />
         ) : (
-          <CollectionDiscovery sections={discoverySections} />
+          <CollectionDiscovery
+            sections={discoverySections}
+            searchPool={searchPool}
+          />
         )
       ) : (
         <Empty className="min-h-80 border">

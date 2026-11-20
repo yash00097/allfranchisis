@@ -1,58 +1,38 @@
 "use client";
 
-import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  type BrowserCollection,
+  CollectionGrid,
+  filterByName,
+} from "@/components/collection-browser";
 import { CollectionCard, imagePriorityFor } from "@/components/collection-card";
 import { CollectionSearch } from "@/components/collection-search";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-
-type Collection = {
-  slug: string;
-  name: string;
-  description: string;
-  genres: string[];
-  coverImageUrl: string | null;
-  _count: { media: number };
-  status?: "WATCHING" | "WATCHED" | null;
-  isFavorite?: boolean;
-};
 
 export function CollectionDiscovery({
   sections,
+  searchPool,
 }: {
-  sections: { title: string; collections: Collection[] }[];
+  sections: { title: string; collections: BrowserCollection[] }[];
+  searchPool: BrowserCollection[];
 }) {
   const [query, setQuery] = useState("");
-  const filteredSections = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return sections.map((section) => ({
-      ...section,
-      collections: normalized
-        ? section.collections.filter((collection) =>
-            collection.name.toLowerCase().includes(normalized),
-          )
-        : section.collections,
-    }));
-  }, [sections, query]);
-  const hasResults = filteredSections.some(
-    (section) => section.collections.length > 0,
+  const searching = query.trim().length > 0;
+  const results = useMemo(
+    () => (searching ? filterByName(searchPool, query) : []),
+    [searchPool, query, searching],
   );
-
-  const firstSectionTitle = filteredSections.find(
+  const firstSectionTitle = sections.find(
     (section) => section.collections.length,
   )?.title;
 
   return (
     <>
       <CollectionSearch value={query} onChange={setQuery} />
-      {hasResults ? (
-        filteredSections.map(({ title, collections }) =>
+      {searching ? (
+        <CollectionGrid collections={results} />
+      ) : (
+        sections.map(({ title, collections }) =>
           collections.length ? (
             <section key={title} className="flex flex-col gap-4">
               <h2 className="font-heading text-2xl font-semibold">{title}</h2>
@@ -76,18 +56,6 @@ export function CollectionDiscovery({
             </section>
           ) : null,
         )
-      ) : (
-        <Empty className="min-h-64 border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Search />
-            </EmptyMedia>
-            <EmptyTitle>No collections found</EmptyTitle>
-            <EmptyDescription>
-              Try a different collection name.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
       )}
     </>
   );
