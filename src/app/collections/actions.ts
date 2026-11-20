@@ -47,6 +47,7 @@ export async function setCollectionStatus(formData: FormData): Promise<void> {
   revalidatePath("/watching");
   revalidatePath("/watched");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/franchises", "layout");
 }
 
@@ -91,5 +92,44 @@ export async function setCollectionFavorite(
   revalidatePath("/watched");
   revalidatePath("/favorites");
   revalidatePath("/franchises", "layout");
+  return { error: null };
+}
+
+export async function setCollectionWatchlist(
+  formData: FormData,
+): Promise<{ error: string | null }> {
+  const user = await requireCurrentUser();
+  const rawSlug = formData.get("slug");
+  const watchlist = formData.get("watchlist");
+  const slug = typeof rawSlug === "string" ? rawSlug.trim() : "";
+
+  if (!slug) return { error: "Collection is required." };
+  if (watchlist !== "true" && watchlist !== "false")
+    return { error: "Invalid watchlist state." };
+
+  try {
+    const prisma = getPrismaClient();
+    const collection = await prisma.collection.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!collection) return { error: "Collection not found." };
+
+    const key = { userId: user.id, collectionId: collection.id };
+    if (watchlist === "true") {
+      await prisma.userCollectionWatchlist.createMany({
+        data: [key],
+        skipDuplicates: true,
+      });
+    } else {
+      await prisma.userCollectionWatchlist.deleteMany({ where: key });
+    }
+  } catch (error) {
+    Sentry.captureException(error);
+    return { error: "Could not update watchlist. Please try again." };
+  }
+
+  revalidatePath(`/collections/${slug}`);
+  revalidatePath("/watchlist");
   return { error: null };
 }

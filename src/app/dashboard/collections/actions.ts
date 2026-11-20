@@ -76,6 +76,7 @@ export async function createCollection(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }
 
@@ -102,6 +103,7 @@ export async function updateCollection(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }
 
@@ -113,6 +115,7 @@ export async function deleteCollection(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }
 
@@ -217,6 +220,7 @@ export async function addMediaToCollection(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }
 
@@ -341,6 +345,7 @@ export async function saveSeasonSeparation(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }
 
@@ -413,6 +418,7 @@ export async function refreshTvSeasonSeparation(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
   return {
     seasonNumbers: available,
@@ -430,6 +436,7 @@ export async function removeMediaFromCollection(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }
 
@@ -482,5 +489,6 @@ export async function reorderCollectionMedia(formData: FormData) {
   invalidateCollections();
   revalidatePath("/collections");
   revalidatePath("/favorites");
+  revalidatePath("/watchlist");
   revalidatePath("/dashboard/collections");
 }

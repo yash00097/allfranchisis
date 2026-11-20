@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CollectionFavoriteButton } from "@/components/collection-favorite-button";
 import { CollectionMediaBrowser } from "@/components/collection-media-browser";
 import { CollectionStatusControl } from "@/components/collection-status-control";
+import { CollectionWatchlistButton } from "@/components/collection-watchlist-button";
 import { GenreBadges } from "@/components/genre-badges";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { getCollectionBySlug } from "@/lib/collections";
 import { getCollectionFavorite } from "@/lib/favorites/queries";
 import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb";
 import { getCollectionStatus } from "@/lib/watch-status/queries";
+import { getCollectionWatchlisted } from "@/lib/watchlist/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +29,16 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
   ]);
   if (!collection) notFound();
 
-  const [viewerStatus, isFavorite] = user
+  const [viewerStatus, isFavorite, isWatchlisted] = user
     ? await Promise.all([
         getCollectionStatus({ userId: user.id, collectionId: collection.id }),
         getCollectionFavorite({ userId: user.id, collectionId: collection.id }),
+        getCollectionWatchlisted({
+          userId: user.id,
+          collectionId: collection.id,
+        }),
       ])
-    : [null, false];
+    : [null, false, false];
 
   const media = collection.media
     .flatMap(({ mediaItem, displayOrder, seasonGroups }) =>
@@ -116,11 +122,18 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
                 {collection.name}
               </h1>
               {user ? (
-                <CollectionFavoriteButton
-                  slug={collection.slug}
-                  name={collection.name}
-                  isFavorite={isFavorite}
-                />
+                <div className="flex items-start gap-2">
+                  <CollectionFavoriteButton
+                    slug={collection.slug}
+                    name={collection.name}
+                    isFavorite={isFavorite}
+                  />
+                  <CollectionWatchlistButton
+                    slug={collection.slug}
+                    name={collection.name}
+                    isWatchlisted={isWatchlisted}
+                  />
+                </div>
               ) : null}
             </div>
             <p className="max-w-3xl text-muted-foreground">

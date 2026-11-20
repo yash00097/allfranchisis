@@ -1,4 +1,5 @@
 import {
+  Bookmark,
   CheckCircle2,
   Clapperboard,
   Heart,
@@ -46,6 +47,13 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Your library",
     items: [
+      {
+        href: "/watchlist",
+        label: "Watchlist",
+        icon: Bookmark,
+        requiresAuth: true,
+        requiresManager: false,
+      },
       {
         href: "/watching",
         label: "In Progress",

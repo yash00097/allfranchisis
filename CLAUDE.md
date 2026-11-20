@@ -28,11 +28,11 @@ No test runner is configured. Validation = `npm run typecheck` + `npm run lint` 
 
 Next.js 16 App Router, React Server Components by default. Request flow:
 
-- `src/proxy.ts` — Clerk middleware. Next 16 renamed middleware to **proxy**; do not create `middleware.ts`. Protects `/dashboard(.*)`, `/watching`, `/watched`; allows `/api/webhooks(.*)`; matcher also covers `/__clerk/(.*)`.
+- `src/proxy.ts` — Clerk middleware. Next 16 renamed middleware to **proxy**; do not create `middleware.ts`. Protects `/dashboard(.*)`, `/watching`, `/watched`, `/favorites`, `/watchlist`; allows `/api/webhooks(.*)`; matcher also covers `/__clerk/(.*)`.
 - `src/app/**/page.tsx` — Server Components read through `src/lib/*` and render `src/components/*`. DB-backed pages set `export const dynamic = "force-dynamic"`; TMDB-backed media pages set `export const revalidate = 3600`.
 - `src/app/dashboard/collections/actions.ts` — all mutations are Server Actions (`"use server"`), each starting with `requireCollectionManager()`, ending with `revalidatePath(...)`.
-- `src/app/collections/actions.ts` — `setCollectionStatus` Server Action (user-gated via `requireCurrentUser()`, **not** manager-gated): writes/clears `UserCollectionStatus` and revalidates `/collections`, the detail route, `/watching`, `/watched`, `/favorites`, and `/franchises` (as a layout, covering `/franchises/[slug]`).
-- Client Components (`"use client"`) exist only for interaction: `site-shell`, `app-sidebar`, `site-header`, `landing-header`, `collection-browser`, `collection-manager`, `collection-media-browser`, `franchise-manager`, `theme-toggle`, `auto-scroll-row`, `genre-multiselect`, `landing/reveal`, `landing/tagline-reveal`. `src/app/layout.tsx` renders `SiteShell` (with `canManageCollections` and the `sidebar_state` cookie as `defaultSidebarOpen`) and no longer contains nav markup. The interactive components receive serialized props and call Server Actions; the shell components (`site-shell`, `app-sidebar`, `site-header`, `landing-header`) render navigation and auth chrome.
+- `src/app/collections/actions.ts` — also `setCollectionFavorite` and `setCollectionWatchlist` (same user gating, return `{ error }`). `setCollectionStatus` Server Action (user-gated via `requireCurrentUser()`, **not** manager-gated): writes/clears `UserCollectionStatus` and revalidates `/collections`, the detail route, `/watching`, `/watched`, `/favorites`, `/watchlist`, and `/franchises` (as a layout, covering `/franchises/[slug]`).
+- Client Components (`"use client"`) exist only for interaction: `site-shell`, `app-sidebar`, `site-header`, `landing-header`, `collection-browser`, `collection-manager`, `collection-media-browser`, `franchise-manager`, `collection-toggle-button` (+ `collection-favorite-button`, `collection-watchlist-button` wrappers), `theme-toggle`, `auto-scroll-row`, `genre-multiselect`, `landing/reveal`, `landing/tagline-reveal`. `src/app/layout.tsx` renders `SiteShell` (with `canManageCollections` and the `sidebar_state` cookie as `defaultSidebarOpen`) and no longer contains nav markup. The interactive components receive serialized props and call Server Actions; the shell components (`site-shell`, `app-sidebar`, `site-header`, `landing-header`) render navigation and auth chrome.
 
 Layers under `src/lib/` (each DB/auth/TMDB module imports `server-only`):
 
@@ -55,6 +55,7 @@ Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 
 - `Collection` / `CollectionMedia` — join carries `displayOrder`; reordering rewrites the whole set in one `$transaction`.
 - `Franchise` / `FranchiseCollection` — top-level grouping of collections only; many-to-many join carries `displayOrder`; cascade deletes join rows only. Managed at `/dashboard/franchises` via `src/app/dashboard/franchises/actions.ts`.
 - `UserCollectionStatus` — per-user In Progress/Completed state (DB enum `WATCHING | WATCHED`) for a whole `Collection` (composite PK, `status` enum `WATCHING | WATCHED`, cascade on both FKs). Written by `setCollectionStatus` in `src/app/collections/actions.ts`; read by `src/lib/watch-status/queries.ts`. Status is collection-level, not per `MediaItem`.
+- `UserCollectionWatchlist` — per-user watchlist for a whole `Collection` (composite PK, cascade on both FKs), independent of status and favorites. Written by `setCollectionWatchlist`; read by `src/lib/watchlist/queries.ts`; listed at `/watchlist`.
 
 ## Environment
 
