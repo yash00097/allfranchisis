@@ -1,8 +1,10 @@
 import { ArrowLeft, Film, Tv } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CollectionFavoriteButton } from "@/components/collection-favorite-button";
 import { CollectionMediaBrowser } from "@/components/collection-media-browser";
+import { CollectionShareButton } from "@/components/collection-share-button";
 import { CollectionStatusControl } from "@/components/collection-status-control";
 import { CollectionWatchlistButton } from "@/components/collection-watchlist-button";
 import { GenreBadges } from "@/components/genre-badges";
@@ -11,7 +13,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getCollectionBySlug } from "@/lib/collections";
 import { getCollectionFavorite } from "@/lib/favorites/queries";
-import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
+import { resolveImage, tmdbImage, tmdbSrcSet } from "@/lib/tmdb";
 import { getCollectionStatus } from "@/lib/watch-status/queries";
 import { getCollectionWatchlisted } from "@/lib/watchlist/queries";
 
@@ -20,6 +23,31 @@ export const dynamic = "force-dynamic";
 type CollectionPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: CollectionPageProps): Promise<Metadata> {
+  const collection = await getCollectionBySlug((await params).slug);
+  if (!collection) return {};
+
+  const description = collection.description.trim() || SITE_DESCRIPTION;
+  const image =
+    resolveImage(collection.backdropUrl, "w1280") ??
+    resolveImage(collection.coverImageUrl, "w780");
+  const images = image ? [image] : undefined;
+
+  return {
+    title: `${collection.name} · ${SITE_NAME}`,
+    description,
+    openGraph: { title: collection.name, description, type: "website", images },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title: collection.name,
+      description,
+      images,
+    },
+  };
+}
 
 export default async function CollectionPage({ params }: CollectionPageProps) {
   const { slug } = await params;
@@ -121,20 +149,23 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
               <h1 className="font-heading text-4xl font-bold tracking-tight lg:text-6xl">
                 {collection.name}
               </h1>
-              {user ? (
-                <div className="flex items-start gap-2">
-                  <CollectionFavoriteButton
-                    slug={collection.slug}
-                    name={collection.name}
-                    isFavorite={isFavorite}
-                  />
-                  <CollectionWatchlistButton
-                    slug={collection.slug}
-                    name={collection.name}
-                    isWatchlisted={isWatchlisted}
-                  />
-                </div>
-              ) : null}
+              <div className="flex items-start gap-2">
+                {user ? (
+                  <>
+                    <CollectionFavoriteButton
+                      slug={collection.slug}
+                      name={collection.name}
+                      isFavorite={isFavorite}
+                    />
+                    <CollectionWatchlistButton
+                      slug={collection.slug}
+                      name={collection.name}
+                      isWatchlisted={isWatchlisted}
+                    />
+                  </>
+                ) : null}
+                <CollectionShareButton name={collection.name} />
+              </div>
             </div>
             <p className="max-w-3xl text-muted-foreground">
               {collection.description}

@@ -5,12 +5,12 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { SiteShell } from "@/components/site-shell";
 import { isCollectionManager } from "@/lib/auth/collection-manager";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AllFranchisis",
-  description:
-    "Explore curated collections of movies, television, and animation.",
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
