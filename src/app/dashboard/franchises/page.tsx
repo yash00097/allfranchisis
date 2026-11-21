@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { FranchiseManager } from "@/components/franchise-manager";
+import { FranchiseManager } from "@/features/franchises/components/franchise-manager";
 import { buttonVariants } from "@/components/ui/button";
 import { isCollectionManager } from "@/lib/auth/collection-manager";
-import { listCollections } from "@/lib/collections";
-import { listFranchisesForManager } from "@/lib/franchises/queries";
+import { listCollections } from "@/features/collections";
+import { listFranchisesForManager } from "@/features/franchises/queries";
 
 export const dynamic = "force-dynamic";
 

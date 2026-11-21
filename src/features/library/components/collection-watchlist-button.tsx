@@ -1,8 +1,8 @@
 "use client";
 
 import { Bookmark } from "lucide-react";
-import { setCollectionWatchlist } from "@/app/collections/actions";
-import { CollectionToggleButton } from "@/components/collection-toggle-button";
+import { setCollectionWatchlist } from "@/features/library/actions";
+import { CollectionToggleButton } from "@/features/library/components/collection-toggle-button";
 
 export function CollectionWatchlistButton({
   slug,

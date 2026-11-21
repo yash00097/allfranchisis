@@ -5,9 +5,12 @@ import {
   type BrowserCollection,
   CollectionGrid,
   filterByName,
-} from "@/components/collection-browser";
-import { CollectionCard, imagePriorityFor } from "@/components/collection-card";
-import { CollectionSearch } from "@/components/collection-search";
+} from "@/features/collections/components/collection-browser";
+import {
+  CollectionCard,
+  imagePriorityFor,
+} from "@/features/collections/components/collection-card";
+import { CollectionSearch } from "@/features/collections/components/collection-search";
 
 export function CollectionDiscovery({
   sections,

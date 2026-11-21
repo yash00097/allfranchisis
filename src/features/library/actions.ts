@@ -2,10 +2,10 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { DISCOVERY_TAG } from "@/lib/collections/cache";
+import { DISCOVERY_TAG } from "@/features/collections/cache";
 import { requireCurrentUser } from "@/lib/auth/current-user";
 import { getPrismaClient } from "@/lib/prisma";
-import { isWatchStatus } from "@/lib/watch-status/types";
+import { isWatchStatus } from "@/features/library/watch-status/types";
 
 const CLEAR = "NONE";
 

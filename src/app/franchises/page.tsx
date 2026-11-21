@@ -1,6 +1,6 @@
 import { Layers } from "lucide-react";
-import { imagePriorityFor } from "@/components/collection-card";
-import { FranchiseCard } from "@/components/franchise-card";
+import { imagePriorityFor } from "@/features/collections/components/collection-card";
+import { FranchiseCard } from "@/features/franchises/components/franchise-card";
 import {
   Empty,
   EmptyDescription,
@@ -8,7 +8,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { listFranchises } from "@/lib/franchises/queries";
+import { listFranchises } from "@/features/franchises/queries";
 
 export const dynamic = "force-dynamic";
 

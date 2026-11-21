@@ -10,16 +10,16 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CollectionCard } from "@/components/collection-card";
-import { landingFont } from "@/components/landing/font";
-import { PosterWall } from "@/components/landing/poster-wall";
-import { Reveal } from "@/components/landing/reveal";
-import { TaglineReveal } from "@/components/landing/tagline-reveal";
+import { CollectionCard } from "@/features/collections/components/collection-card";
+import { landingFont } from "@/features/landing/components/font";
+import { PosterWall } from "@/features/landing/components/poster-wall";
+import { Reveal } from "@/features/landing/components/reveal";
+import { TaglineReveal } from "@/features/landing/components/tagline-reveal";
 import {
   getLandingData,
   listCollectionDiscovery,
   listCollectionGenres,
-} from "@/lib/collections";
+} from "@/features/collections";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";

@@ -2,11 +2,11 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import type { MediaType } from "@/generated/prisma/client";
-import { COLLECTIONS_TAG, reviveDates } from "@/lib/collections/cache";
+import { COLLECTIONS_TAG, reviveDates } from "@/features/collections/cache";
 import {
   COLLECTION_GENRES,
   type CollectionGenre,
-} from "@/lib/collections/genres";
+} from "@/features/collections/genres";
 import { getPrismaClient } from "@/lib/prisma";
 
 const cacheOptions = { tags: [COLLECTIONS_TAG], revalidate: 3600 };

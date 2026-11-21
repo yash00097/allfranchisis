@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { CollectionManager } from "@/components/collection-manager";
+import { CollectionManager } from "@/features/collections/components/collection-manager";
 import { buttonVariants } from "@/components/ui/button";
 import { isCollectionManager } from "@/lib/auth/collection-manager";
-import { listCollectionsForManager } from "@/lib/collections";
+import { listCollectionsForManager } from "@/features/collections";
 
 export const dynamic = "force-dynamic";
 

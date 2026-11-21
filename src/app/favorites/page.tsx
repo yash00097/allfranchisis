@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
-import { CollectionBrowser } from "@/components/collection-browser";
+import { CollectionBrowser } from "@/features/collections/components/collection-browser";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { listUserFavoriteCollections } from "@/lib/favorites/queries";
-import { getCollectionStatuses } from "@/lib/watch-status/queries";
-import type { WatchStatus } from "@/lib/watch-status/types";
+import { listUserFavoriteCollections } from "@/features/library/favorites/queries";
+import { getCollectionStatuses } from "@/features/library/watch-status/queries";
+import type { WatchStatus } from "@/features/library/watch-status/types";
 
 export const dynamic = "force-dynamic";
 

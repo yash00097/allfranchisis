@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "cn";
 import { AutoScrollRow } from "@/components/auto-scroll-row";
-import type { CollectionGenre } from "@/lib/collections/genres";
+import type { CollectionGenre } from "@/features/collections/genres";
 
 const chipClass =
   "shrink-0 whitespace-nowrap border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors";

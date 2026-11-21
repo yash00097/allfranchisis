@@ -1,8 +1,8 @@
 import { Library } from "lucide-react";
 import Link from "next/link";
-import { CollectionBrowser } from "@/components/collection-browser";
-import { CollectionDiscovery } from "@/components/collection-discovery";
-import { GenreFilterBar } from "@/components/genre-filter-bar";
+import { CollectionBrowser } from "@/features/collections/components/collection-browser";
+import { CollectionDiscovery } from "@/features/collections/components/collection-discovery";
+import { GenreFilterBar } from "@/features/collections/components/genre-filter-bar";
 import {
   Empty,
   EmptyDescription,
@@ -15,11 +15,11 @@ import {
   listCollectionDiscovery,
   listCollections,
   listCollectionGenres,
-} from "@/lib/collections";
-import { isCollectionGenre } from "@/lib/collections/genres";
-import { getCollectionFavorites } from "@/lib/favorites/queries";
-import { getCollectionStatuses } from "@/lib/watch-status/queries";
-import type { WatchStatus } from "@/lib/watch-status/types";
+} from "@/features/collections";
+import { isCollectionGenre } from "@/features/collections/genres";
+import { getCollectionFavorites } from "@/features/library/favorites/queries";
+import { getCollectionStatuses } from "@/features/library/watch-status/queries";
+import type { WatchStatus } from "@/features/library/watch-status/types";
 
 export const dynamic = "force-dynamic";
 

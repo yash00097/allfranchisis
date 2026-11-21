@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import {
   refreshTvSeasonSeparation,
   saveSeasonSeparation,
-} from "@/app/dashboard/collections/actions";
+} from "@/features/collections/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

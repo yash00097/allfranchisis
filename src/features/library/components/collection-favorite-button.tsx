@@ -1,8 +1,8 @@
 "use client";
 
 import { Heart } from "lucide-react";
-import { setCollectionFavorite } from "@/app/collections/actions";
-import { CollectionToggleButton } from "@/components/collection-toggle-button";
+import { setCollectionFavorite } from "@/features/library/actions";
+import { CollectionToggleButton } from "@/features/library/components/collection-toggle-button";
 
 export function CollectionFavoriteButton({
   slug,

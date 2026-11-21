@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { invalidateCollections } from "@/lib/collections/cache";
+import { invalidateCollections } from "@/features/collections/cache";
 import { MediaType, Prisma } from "@/generated/prisma/client";
 import { requireCollectionManager } from "@/lib/auth/collection-manager";
-import { sanitizeCollectionGenres } from "@/lib/collections/genres";
+import { sanitizeCollectionGenres } from "@/features/collections/genres";
 import {
   appendNewSeasons,
   availableSeasonNumbers,
   mapSeasonGroups,
   validateSeasonGroups,
-} from "@/lib/collections/season-groups";
+} from "@/features/collections/season-groups";
 import { parseStringArray, slugify, text } from "@/lib/form-data";
 import { getPrismaClient } from "@/lib/prisma";
 import { getMovieDetails, getTvDetails, searchTmdb } from "@/lib/tmdb";

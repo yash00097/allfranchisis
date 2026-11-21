@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { MediaDetailView } from "@/components/media-detail";
-import { getCollectionBySlug } from "@/lib/collections";
+import { MediaDetailView } from "@/features/media/components/media-detail";
+import { getCollectionBySlug } from "@/features/collections";
 
 export const revalidate = 3600;
 

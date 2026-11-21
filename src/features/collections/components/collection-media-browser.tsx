@@ -7,7 +7,7 @@ import {
   Star,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { MediaCard } from "@/components/media-card";
+import { MediaCard } from "@/features/media/components/media-card";
 import type { MediaType } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import {

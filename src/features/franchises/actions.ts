@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import { requireCollectionManager } from "@/lib/auth/collection-manager";
-import { invalidateFranchises } from "@/lib/collections/cache";
+import { invalidateFranchises } from "@/features/collections/cache";
 import { parseStringArray, slugify, text } from "@/lib/form-data";
 import { getPrismaClient } from "@/lib/prisma";
 

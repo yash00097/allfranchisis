@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { COLLECTION_GENRES } from "@/lib/collections/genres";
+import { COLLECTION_GENRES } from "@/features/collections/genres";
 
 export function GenreMultiselect({
   name = "genres",

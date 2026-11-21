@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getPrismaClient } from "@/lib/prisma";
-import { type WatchStatus } from "@/lib/watch-status/types";
+import { type WatchStatus } from "@/features/library/watch-status/types";
 
 export async function getCollectionStatus({
   userId,

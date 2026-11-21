@@ -1,15 +1,15 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CollectionBrowser } from "@/components/collection-browser";
+import { CollectionBrowser } from "@/features/collections/components/collection-browser";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { getCollectionFavorites } from "@/lib/favorites/queries";
-import { getFranchiseBySlug } from "@/lib/franchises/queries";
+import { getCollectionFavorites } from "@/features/library/favorites/queries";
+import { getFranchiseBySlug } from "@/features/franchises/queries";
 import { resolveImage, tmdbSrcSet } from "@/lib/tmdb/images";
-import { getCollectionStatuses } from "@/lib/watch-status/queries";
-import type { WatchStatus } from "@/lib/watch-status/types";
+import { getCollectionStatuses } from "@/features/library/watch-status/queries";
+import type { WatchStatus } from "@/features/library/watch-status/types";
 
 export const dynamic = "force-dynamic";
 

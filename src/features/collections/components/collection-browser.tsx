@@ -2,8 +2,11 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CollectionCard, imagePriorityFor } from "@/components/collection-card";
-import { CollectionSearch } from "@/components/collection-search";
+import {
+  CollectionCard,
+  imagePriorityFor,
+} from "@/features/collections/components/collection-card";
+import { CollectionSearch } from "@/features/collections/components/collection-search";
 import {
   Empty,
   EmptyDescription,

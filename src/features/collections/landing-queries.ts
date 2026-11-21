@@ -5,7 +5,7 @@ import {
   COLLECTIONS_TAG,
   DISCOVERY_TAG,
   reviveDates,
-} from "@/lib/collections/cache";
+} from "@/features/collections/cache";
 import { getPrismaClient } from "@/lib/prisma";
 
 const POSTER_LIMIT = 28;

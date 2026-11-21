@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { GenreBadges } from "@/components/genre-badges";
+import { GenreBadges } from "@/features/collections/components/genre-badges";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb/images";
-import { WATCH_STATUS_LABELS } from "@/lib/watch-status/types";
+import { WATCH_STATUS_LABELS } from "@/features/library/watch-status/types";
 
 type CollectionCardProps = {
   collection: {

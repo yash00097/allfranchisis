@@ -1,11 +1,11 @@
 import { SignInButton } from "@clerk/nextjs";
-import { setCollectionStatus } from "@/app/collections/actions";
+import { setCollectionStatus } from "@/features/library/actions";
 import { buttonVariants } from "@/components/ui/button";
 import {
   WATCH_STATUSES,
   WATCH_STATUS_LABELS,
   type WatchStatus,
-} from "@/lib/watch-status/types";
+} from "@/features/library/watch-status/types";
 
 type CollectionStatusControlProps = {
   slug: string;

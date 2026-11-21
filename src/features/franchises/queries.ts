@@ -5,7 +5,7 @@ import {
   COLLECTIONS_TAG,
   FRANCHISES_TAG,
   reviveDates,
-} from "@/lib/collections/cache";
+} from "@/features/collections/cache";
 import { getPrismaClient } from "@/lib/prisma";
 
 // Collection tag included so collection edits refresh franchise pages too.

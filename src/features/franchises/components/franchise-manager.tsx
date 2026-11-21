@@ -11,7 +11,7 @@ import {
   removeCollectionFromFranchise,
   reorderFranchiseCollections,
   updateFranchise,
-} from "@/app/dashboard/franchises/actions";
+} from "@/features/franchises/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { MediaDetailView } from "@/components/media-detail";
+import { MediaDetailView } from "@/features/media/components/media-detail";
 
 export const revalidate = 3600;
 

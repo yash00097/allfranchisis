@@ -10,9 +10,9 @@ import {
   reorderCollectionMedia,
   searchCollectionMedia,
   updateCollection,
-} from "@/app/dashboard/collections/actions";
-import { GenreMultiselect } from "@/components/genre-multiselect";
-import { SeasonSeparationDialog } from "@/components/season-separation-dialog";
+} from "@/features/collections/actions";
+import { GenreMultiselect } from "@/features/collections/components/genre-multiselect";
+import { SeasonSeparationDialog } from "@/features/collections/components/season-separation-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
