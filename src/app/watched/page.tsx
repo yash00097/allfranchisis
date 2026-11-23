@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { PAGE_MAIN_CLASS, PageHeader } from "@/components/page-header";
 import { CollectionBrowser } from "@/features/collections/components/collection-browser";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getCollectionFavorites } from "@/features/library/favorites/queries";
@@ -23,16 +24,12 @@ export default async function WatchedPage() {
     : new Set<string>();
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-10">
-      <header className="flex flex-col gap-2">
-        <p className="text-sm uppercase tracking-wide text-muted-foreground">
-          Your library
-        </p>
-        <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
-          Completed
-        </h1>
-        <p className="text-muted-foreground">Collections you have finished.</p>
-      </header>
+    <main className={PAGE_MAIN_CLASS}>
+      <PageHeader
+        kicker="Your library"
+        title="Completed"
+        description="Collections you have finished"
+      />
       <CollectionBrowser
         collections={collections.map((collection) => ({
           ...collection,

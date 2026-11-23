@@ -4,7 +4,7 @@ import { AutoScrollRow } from "@/components/auto-scroll-row";
 import type { CollectionGenre } from "@/features/collections/genres";
 
 const chipClass =
-  "shrink-0 whitespace-nowrap border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors";
+  "shrink-0 whitespace-nowrap border px-3 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 export function GenreFilterBar({
   genres,
@@ -48,7 +48,7 @@ function GenreChip({
         chipClass,
         active
           ? "border-primary bg-primary text-primary-foreground"
-          : "border-primary/50 text-primary hover:bg-primary/10",
+          : "border-foreground/15 text-muted-foreground hover:border-foreground/30 hover:text-foreground",
       )}
     >
       {label}

@@ -46,7 +46,7 @@ export function CollectionGrid({
   emptyDescription?: string;
 }) {
   return collections.length ? (
-    <div className="grid items-start gap-5 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid items-start gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
       {collections.map((collection, index) => (
         <div key={collection.slug} className="mx-auto w-[70%] sm:w-full">
           <CollectionCard
@@ -93,12 +93,12 @@ export function CollectionBrowser({
   );
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <CollectionSearch value={query} onChange={setQuery} />
       <CollectionGrid
         collections={visible}
         {...(searching ? {} : { emptyTitle, emptyDescription })}
       />
-    </>
+    </div>
   );
 }

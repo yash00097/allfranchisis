@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { GenreBadges } from "@/features/collections/components/genre-badges";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "cn";
 import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb/images";
 import { WATCH_STATUS_LABELS } from "@/features/library/watch-status/types";
 
@@ -40,55 +38,67 @@ export function CollectionCard({
   imagePriority = "lazy",
 }: CollectionCardProps) {
   const href = `/collections/${collection.slug}`;
+  const count = collection._count.media;
   const isTmdbPath = !collection.coverImageUrl?.startsWith("http");
   const image = isTmdbPath
     ? tmdbImage(collection.coverImageUrl, "w780")
     : collection.coverImageUrl;
 
   return (
-    <Card className="self-start">
-      <Link href={href} prefetch className="group block">
-        <div className="flex justify-center bg-muted">
-          {image ? (
-            <img
-              src={image}
-              {...IMAGE_LOADING[imagePriority]}
-              {...(isTmdbPath && {
-                srcSet: tmdbSrcSet(collection.coverImageUrl, [342, 500, 780]),
-                sizes: COVER_SIZES,
-                width: 500,
-                height: 750,
-              })}
-              alt=""
-              className="block h-auto w-full object-contain"
-            />
-          ) : (
-            <div className="flex min-h-32 w-full items-center justify-center text-sm text-muted-foreground">
-              No cover image
-            </div>
-          )}
-        </div>
-      </Link>
-      <CardContent className="flex flex-col gap-2 p-4">
-        <Link href={href} prefetch className="group block">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="font-heading text-xl font-semibold">
-              {collection.name}
-            </h2>
-            {collection.status ? (
-              <Badge variant="secondary" className="shrink-0">
-                {WATCH_STATUS_LABELS[collection.status]}
-              </Badge>
-            ) : null}
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {collection._count.media} items
-            </span>
+    <Link
+      href={href}
+      prefetch
+      className="group flex flex-col gap-3 outline-none"
+    >
+      <div className="aspect-[2/3] overflow-hidden bg-muted ring-1 ring-foreground/10 transition-[box-shadow] group-hover:ring-foreground/40 group-focus-visible:ring-2 group-focus-visible:ring-ring">
+        {image ? (
+          <img
+            src={image}
+            {...IMAGE_LOADING[imagePriority]}
+            {...(isTmdbPath && {
+              srcSet: tmdbSrcSet(collection.coverImageUrl, [342, 500, 780]),
+              sizes: COVER_SIZES,
+              width: 500,
+              height: 750,
+            })}
+            alt=""
+            className="size-full object-contain"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center text-sm text-muted-foreground">
+            No cover image
           </div>
-        </Link>
-        <Link href={href} prefetch className="min-w-0">
-          <GenreBadges genres={collection.genres} />
-        </Link>
-      </CardContent>
-    </Card>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <h2 className="font-heading text-lg leading-snug font-medium transition-colors group-hover:text-primary">
+          {collection.name}
+        </h2>
+        <p className="flex items-center gap-2 font-mono text-xs text-muted-foreground tabular-nums">
+          <span>
+            {count} {count === 1 ? "title" : "titles"}
+          </span>
+          {collection.status ? (
+            <span className="flex items-center gap-1.5 font-sans">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "size-1.5",
+                  collection.status === "WATCHING"
+                    ? "bg-primary"
+                    : "bg-muted-foreground",
+                )}
+              />
+              {WATCH_STATUS_LABELS[collection.status]}
+            </span>
+          ) : null}
+        </p>
+        {collection.genres.length ? (
+          <p className="line-clamp-1 text-xs text-muted-foreground">
+            {collection.genres.join(" · ")}
+          </p>
+        ) : null}
+      </div>
+    </Link>
   );
 }
