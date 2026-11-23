@@ -1,4 +1,5 @@
 import { SignInButton } from "@clerk/nextjs";
+import { cn } from "cn";
 import { setCollectionStatus } from "@/features/library/actions";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -20,13 +21,16 @@ export function CollectionStatusControl({
 }: CollectionStatusControlProps) {
   if (!isSignedIn) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="flex h-11 items-center gap-1 text-sm text-muted-foreground">
         <SignInButton mode="modal">
-          <button type="button" className="underline">
+          <button
+            type="button"
+            className="text-foreground underline underline-offset-4 transition-colors hover:text-primary"
+          >
             Sign in
           </button>
         </SignInButton>{" "}
-        to track this collection.
+        to track this collection
       </p>
     );
   }
@@ -34,10 +38,10 @@ export function CollectionStatusControl({
   return (
     <form
       action={setCollectionStatus}
+      aria-label="Watch status"
       className="flex flex-wrap items-center gap-2"
     >
       <input type="hidden" name="slug" value={slug} />
-      <span className="text-sm text-muted-foreground">Your status:</span>
       {WATCH_STATUSES.map((value) => (
         <button
           key={value}
@@ -45,10 +49,13 @@ export function CollectionStatusControl({
           name="status"
           value={value}
           aria-pressed={status === value}
-          className={buttonVariants({
-            variant: status === value ? "default" : "outline",
-            size: "sm",
-          })}
+          className={cn(
+            buttonVariants({
+              variant: status === value ? "default" : "outline",
+              size: "lg",
+            }),
+            "h-11 px-4",
+          )}
         >
           {WATCH_STATUS_LABELS[value]}
         </button>
@@ -58,7 +65,10 @@ export function CollectionStatusControl({
           type="submit"
           name="status"
           value="NONE"
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "lg" }),
+            "h-11 px-4 text-muted-foreground",
+          )}
         >
           Remove
         </button>
