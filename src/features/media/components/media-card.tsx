@@ -10,7 +10,6 @@ type MediaCardProps = {
     tmdbId: number;
     mediaType: MediaType;
     title: string;
-    overview: string | null;
     posterPath: string | null;
     releaseDate: Date | null;
     voteAverage: number | null;
@@ -69,11 +68,6 @@ export function MediaCard({ media, position, collectionSlug }: MediaCardProps) {
             </span>
           ) : null}
         </p>
-        {media.overview ? (
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-            {media.overview}
-          </p>
-        ) : null}
       </div>
     </Link>
   );
