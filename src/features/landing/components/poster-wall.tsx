@@ -46,6 +46,7 @@ function PosterImage({ poster }: { poster: Poster }) {
       decoding="async"
       fetchPriority="low"
       draggable={false}
+      crossOrigin="anonymous"
       className="aspect-[2/3] w-full bg-landing-raised object-cover"
     />
   );

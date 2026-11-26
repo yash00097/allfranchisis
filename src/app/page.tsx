@@ -13,6 +13,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { CollectionCard } from "@/features/collections/components/collection-card";
 import { CountUp } from "@/features/landing/components/count-up";
 import { landingFont, landingMono } from "@/features/landing/components/font";
+import { PosterGallery } from "@/features/landing/components/poster-gallery";
 import { PosterWall } from "@/features/landing/components/poster-wall";
 import { Reveal } from "@/features/landing/components/reveal";
 import { TaglineReveal } from "@/features/landing/components/tagline-reveal";
@@ -21,7 +22,7 @@ import {
   listCollectionDiscovery,
   listCollectionGenres,
 } from "@/features/collections";
-import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb/images";
+import { tmdbImage } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -255,57 +256,15 @@ function WatchOrder({ featured }: { featured: Featured }) {
   const remaining = featured._count.media - featured.media.length;
   return (
     <div className="flex flex-col gap-6">
-      <ol className={cn(RAIL, "sm:grid-cols-4 lg:grid-cols-8")}>
-        {featured.media.map(({ mediaItem }, index) => {
-          const poster = tmdbImage(mediaItem.posterPath, "w342");
-          return (
-            <li
-              key={mediaItem.id}
-              className="landing-stagger relative flex w-[40%] shrink-0 snap-start flex-col gap-3 sm:w-auto"
-              style={stagger(index)}
-            >
-              <div className="flex items-center gap-3" aria-hidden="true">
-                <span className="landing-mono caption-3 text-primary">
-                  {pad(index + 1)}
-                </span>
-                <span
-                  className="landing-draw h-px flex-1 bg-landing-line"
-                  style={stagger(index)}
-                />
-              </div>
-              {poster ? (
-                <img
-                  src={poster}
-                  srcSet={tmdbSrcSet(mediaItem.posterPath, [185, 342])}
-                  sizes="(min-width: 1024px) 150px, (min-width: 640px) 25vw, 40vw"
-                  alt={`${mediaItem.title} poster`}
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-[2/3] w-full bg-landing-raised object-cover ring-1 ring-landing-line"
-                />
-              ) : (
-                <div className="caption-5 flex aspect-[2/3] w-full items-center justify-center bg-landing-raised p-3 text-center text-landing-muted ring-1 ring-landing-line">
-                  No poster
-                </div>
-              )}
-              <div className="flex flex-col gap-1">
-                <span className="sr-only">Entry {index + 1}:</span>
-                <span className="title-4 line-clamp-2 text-landing-fg">
-                  {mediaItem.title}
-                </span>
-                <span className="caption-5 text-landing-muted">
-                  <span className="landing-mono">
-                    {mediaItem.releaseDate?.getUTCFullYear() ?? "TBA"}
-                  </span>
-                  {" · "}
-                  {mediaItem.isAnimated ? "Animated " : ""}
-                  {mediaItem.mediaType === "MOVIE" ? "movie" : "series"}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <PosterGallery
+        items={featured.media.map(({ mediaItem }) => ({
+          id: mediaItem.id,
+          title: mediaItem.title,
+          poster: tmdbImage(mediaItem.posterPath, "w342"),
+          year: String(mediaItem.releaseDate?.getUTCFullYear() ?? "TBA"),
+          kind: `${mediaItem.isAnimated ? "Animated " : ""}${mediaItem.mediaType === "MOVIE" ? "movie" : "series"}`,
+        }))}
+      />
       <div className="flex flex-col gap-3 border-landing-line border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="caption-2 text-landing-muted">
           {featured.name}

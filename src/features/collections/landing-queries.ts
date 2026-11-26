@@ -9,12 +9,11 @@ import {
 import { getPrismaClient } from "@/lib/prisma";
 
 const POSTER_LIMIT = 28;
-const FEATURED_ITEM_LIMIT = 8;
 const inAnyCollection = { collections: { some: {} } } as const;
 
 export async function getLandingData() {
   return reviveDates(
-    await unstable_cache(readLandingData, ["landing-data-v2"], {
+    await unstable_cache(readLandingData, ["landing-data-v3"], {
       tags: [COLLECTIONS_TAG, DISCOVERY_TAG],
       revalidate: 300,
     })(),
@@ -50,7 +49,6 @@ async function readLandingData() {
           _count: { select: { media: true } },
           media: {
             orderBy: { displayOrder: "asc" },
-            take: FEATURED_ITEM_LIMIT,
             select: {
               mediaItem: {
                 select: {
