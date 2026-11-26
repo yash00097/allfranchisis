@@ -23,7 +23,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <ClerkProvider appearance={{ theme: shadcn }}>
+        <ClerkProvider
+          appearance={{ theme: shadcn }}
+          afterSignOutUrl="/collections"
+        >
           <SiteShell
             canManageCollections={canManageCollections}
             defaultSidebarOpen={defaultSidebarOpen}

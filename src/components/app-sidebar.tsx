@@ -4,9 +4,8 @@ import {
   Show,
   SignInButton,
   SignUpButton,
+  UserButton,
   useAuth,
-  useClerk,
-  useUser,
 } from "@clerk/nextjs";
 import { LogIn, PanelLeft, PanelLeftOpen, UserPlus } from "lucide-react";
 import Image from "next/image";
@@ -30,6 +29,17 @@ import {
 } from "@/components/ui/sidebar";
 import { isNavItemActive, visibleNavGroups } from "@/components/site-nav";
 
+// Styles Clerk's trigger like a size="lg" SidebarMenuButton: avatar first, name truncated, icon-only when collapsed.
+const USER_BUTTON_ELEMENTS = {
+  rootBox: "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
+  userButtonTrigger:
+    "h-12! w-full! justify-start! rounded-none! p-2! text-sidebar-foreground! transition-colors hover:bg-sidebar-accent! focus-visible:ring-2! focus-visible:ring-sidebar-ring! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:p-0!",
+  userButtonBox: "w-full! flex-row-reverse! justify-end! gap-2!",
+  userButtonOuterIdentifier:
+    "truncate p-0! text-sm! font-medium! text-sidebar-foreground! group-data-[collapsible=icon]:hidden",
+  avatarBox: "size-7! rounded-none!",
+};
+
 export function AppSidebar({
   canManageCollections,
 }: {
@@ -37,8 +47,6 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
-  const { user } = useUser();
-  const { openUserProfile } = useClerk();
   const { isMobile, setOpenMobile, toggleSidebar } = useSidebar();
   const groups = visibleNavGroups({
     signedIn: Boolean(isSignedIn),
@@ -135,34 +143,11 @@ export function AppSidebar({
       <SidebarFooter>
         <Show when="signed-in">
           <div className="flex items-center gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-0">
-            <SidebarMenu className="min-w-0 flex-1">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="lg"
-                  tooltip="Open profile"
-                  onClick={() => openUserProfile()}
-                >
-                  {user?.imageUrl ? (
-                    <img
-                      src={user.imageUrl}
-                      alt=""
-                      aria-hidden="true"
-                      width={28}
-                      height={28}
-                      className="size-7 shrink-0 rounded-none bg-muted object-cover"
-                    />
-                  ) : (
-                    <span className="size-7 shrink-0 rounded-none bg-muted" />
-                  )}
-                  <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
-                    {user?.fullName ??
-                      user?.username ??
-                      user?.firstName ??
-                      "Account"}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+            {/* Clerk's popover carries "Manage account" and "Sign out". */}
+            <UserButton
+              showName
+              appearance={{ elements: USER_BUTTON_ELEMENTS }}
+            />
             <ThemeToggle />
           </div>
         </Show>
