@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import type { MediaType } from "@/generated/prisma/client";
 import { COLLECTIONS_TAG, reviveDates } from "@/features/collections/cache";
 import {
@@ -29,19 +30,40 @@ export async function listCollectionGenres(): Promise<CollectionGenre[]> {
   )();
 }
 
-export async function getCollectionBySlug(slug: string) {
-  return reviveDates(
+// React cache() shares one result between generateMetadata and the page.
+export const getCollectionBySlug = cache(async (slug: string) =>
+  reviveDates(
     await unstable_cache(
       () => readCollectionBySlug(slug),
       ["collection-by-slug", slug],
       cacheOptions,
     )(),
-  );
+  ),
+);
+
+export async function getCollectionSummaryBySlug(slug: string) {
+  return unstable_cache(
+    () =>
+      getPrismaClient().collection.findUnique({
+        where: { slug },
+        select: { slug: true, name: true },
+      }),
+    ["collection-summary-by-slug", slug],
+    cacheOptions,
+  )();
 }
 
+// Only the fields search and CollectionCard read: this list ships to the client.
 function readCollections() {
   return getPrismaClient().collection.findMany({
-    include: { _count: { select: { media: true } } },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      genres: true,
+      coverImageUrl: true,
+      _count: { select: { media: true } },
+    },
     orderBy: { name: "asc" },
   });
 }

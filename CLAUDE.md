@@ -49,13 +49,13 @@ Shared layers under `src/lib/` (each DB/auth/TMDB module imports `server-only`):
 - `form-data.ts` — shared `text` / `slugify` / `parseStringArray` helpers for Server Actions ("use server" files may only export async functions).
 - `tmdb/` — `service.ts` (fetch wrapper: 8s timeout, one retry on network error, `revalidate: 3600`), `images.ts` (`tmdbImage(path, size)` → full URL or `null`), `types.ts`.
 
-Shared components in `src/components/`: `ui/` primitives plus app chrome (`site-shell`, `app-sidebar`, `site-header`, `site-nav`, `theme-toggle`, `auto-scroll-row`).
+Shared components in `src/components/`: `ui/` primitives plus app chrome (`site-shell`, `app-sidebar`, `site-header`, `site-nav`, `theme-toggle`, `auto-scroll-row`) and `page-skeletons` (server-rendered skeletons used by route `loading.tsx` files).
 
 `src/app/api/webhooks/clerk/route.ts` verifies the Clerk webhook and upserts/deletes the local `User`. Auth state is therefore synced two ways: eagerly by webhook, lazily by `syncCurrentUser()` on the dashboard.
 
 ## Data model
 
-Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 style — the schema has **no `datasource url`**; the connection string is supplied by `prisma7.config.ts` (CLI) and the Neon adapter (runtime). Generated client output is `src/generated/prisma` (gitignored, never edit).
+Defined in `prisma/schema.prisma`; migrations in `prisma/migrations/`. Prisma 7 style — the schema has **no `datasource url`**; the connection string is supplied by `prisma7.config.ts` (CLI) and `@prisma/adapter-pg` on Neon's pooled endpoint (runtime). Generated client output is `src/generated/prisma` (gitignored, never edit).
 
 - `User` — `clerkId` and `email` both unique; maps Clerk identity to a local row.
 - `MediaItem` — cached TMDB metadata keyed by `@@unique([tmdbId, mediaType])`; `mediaType` enum `MOVIE | TV`.

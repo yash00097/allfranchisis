@@ -31,6 +31,38 @@ function groupKey(groupId: string) {
   return `group:${groupId}`;
 }
 
+// Sets displayOrder = position in `keys` with one UPDATE per table, not one
+// per row. Returns the number of rows updated.
+async function writeDisplayOrder(
+  tx: Prisma.TransactionClient,
+  collectionId: string,
+  keys: string[],
+) {
+  const groups = { ids: [] as string[], orders: [] as number[] };
+  const media = { ids: [] as string[], orders: [] as number[] };
+  keys.forEach((key, order) => {
+    const target = key.startsWith("group:") ? groups : media;
+    target.ids.push(key.slice(key.indexOf(":") + 1));
+    target.orders.push(order);
+  });
+  // Sequential: statements on one transaction connection run one at a time anyway.
+  const groupCount = groups.ids.length
+    ? await tx.$executeRaw`
+            UPDATE "CollectionMediaSeasonGroup" AS g
+            SET "displayOrder" = v.ord, "updatedAt" = now()
+            FROM unnest(${groups.ids}::text[], ${groups.orders}::int[]) AS v(id, ord)
+            WHERE g."id" = v.id AND g."collectionId" = ${collectionId}`
+    : 0;
+  const mediaCount = media.ids.length
+    ? await tx.$executeRaw`
+            UPDATE "CollectionMedia" AS m
+            SET "displayOrder" = v.ord
+            FROM unnest(${media.ids}::text[], ${media.orders}::int[]) AS v(id, ord)
+            WHERE m."collectionId" = ${collectionId} AND m."mediaItemId" = v.id`
+    : 0;
+  return groupCount + mediaCount;
+}
+
 async function getVisibleCollectionEntries(
   tx: Prisma.TransactionClient,
   collectionId: string,
@@ -283,49 +315,25 @@ export async function saveSeasonSeparation(formData: FormData) {
     await tx.collectionMediaSeasonGroup.deleteMany({
       where: { collectionId, mediaItemId },
     });
-    const createdKeys: string[] = [];
-    for (let groupOrder = 0; groupOrder < groups.length; groupOrder += 1) {
-      const created = await tx.collectionMediaSeasonGroup.create({
-        data: {
-          collectionId,
-          mediaItemId,
-          groupOrder,
-          displayOrder: 0,
-          seasons: {
-            create: groups[groupOrder].map((seasonNumber) => ({
-              seasonNumber,
-            })),
-          },
-        },
-      });
-      createdKeys.push(groupKey(created.id));
-    }
+    const groupIds = groups.map(() => crypto.randomUUID());
+    await tx.collectionMediaSeasonGroup.createMany({
+      data: groupIds.map((id, groupOrder) => ({
+        id,
+        collectionId,
+        mediaItemId,
+        groupOrder,
+        displayOrder: firstOldIndex + groupOrder,
+      })),
+    });
+    await tx.collectionMediaSeason.createMany({
+      data: groupIds.flatMap((groupId, groupOrder) =>
+        groups[groupOrder].map((seasonNumber) => ({ groupId, seasonNumber })),
+      ),
+    });
 
     const nextEntries = visibleEntries.filter((key) => !oldKeys.includes(key));
-    nextEntries.splice(firstOldIndex, 0, ...createdKeys);
-    for (
-      let displayOrder = 0;
-      displayOrder < nextEntries.length;
-      displayOrder += 1
-    ) {
-      const key = nextEntries[displayOrder];
-      if (key.startsWith("group:")) {
-        await tx.collectionMediaSeasonGroup.update({
-          where: { id: key.slice("group:".length) },
-          data: { displayOrder },
-        });
-      } else {
-        await tx.collectionMedia.update({
-          where: {
-            collectionId_mediaItemId: {
-              collectionId,
-              mediaItemId: key.slice("media:".length),
-            },
-          },
-          data: { displayOrder },
-        });
-      }
-    }
+    nextEntries.splice(firstOldIndex, 0, ...groupIds.map(groupKey));
+    await writeDisplayOrder(tx, collectionId, nextEntries);
     await tx.mediaItem.update({
       where: { id: mediaItemId },
       data: {
@@ -468,22 +476,19 @@ export async function reorderCollectionMedia(formData: FormData) {
     throw new Error("Collection order is out of date. Refresh and try again.");
   }
   await prisma.$transaction(
-    normalizedSubmitted.map((key, displayOrder) =>
-      key.startsWith("group:")
-        ? prisma.collectionMediaSeasonGroup.update({
-            where: { id: key.slice("group:".length) },
-            data: { displayOrder },
-          })
-        : prisma.collectionMedia.update({
-            where: {
-              collectionId_mediaItemId: {
-                collectionId,
-                mediaItemId: key.slice("media:".length),
-              },
-            },
-            data: { displayOrder },
-          }),
-    ),
+    async (tx) => {
+      const updated = await writeDisplayOrder(
+        tx,
+        collectionId,
+        normalizedSubmitted,
+      );
+      // A row deleted since validation: roll back, as the per-row updates did.
+      if (updated !== normalizedSubmitted.length) {
+        throw new Error(
+          "Collection order is out of date. Refresh and try again.",
+        );
+      }
+    },
     { maxWait: 10_000, timeout: 20_000 },
   );
   invalidateCollections();

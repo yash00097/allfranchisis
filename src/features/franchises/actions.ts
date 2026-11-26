@@ -134,26 +134,23 @@ export async function removeCollectionFromFranchise(
   if (!franchiseId || !collectionId) {
     return { error: "Franchise and collection are required." };
   }
-  await getPrismaClient().$transaction(async (tx) => {
-    await tx.franchiseCollection.deleteMany({
+  const prisma = getPrismaClient();
+  // Delete, then renumber the remaining rows 0..n-1 in one statement.
+  await prisma.$transaction([
+    prisma.franchiseCollection.deleteMany({
       where: { franchiseId, collectionId },
-    });
-    const remaining = await tx.franchiseCollection.findMany({
-      where: { franchiseId },
-      orderBy: [{ displayOrder: "asc" }, { addedAt: "asc" }],
-    });
-    for (const [displayOrder, row] of remaining.entries()) {
-      await tx.franchiseCollection.update({
-        where: {
-          franchiseId_collectionId: {
-            franchiseId,
-            collectionId: row.collectionId,
-          },
-        },
-        data: { displayOrder },
-      });
-    }
-  });
+    }),
+    prisma.$executeRaw`
+      UPDATE "FranchiseCollection" AS fc
+      SET "displayOrder" = r.ord
+      FROM (
+        SELECT "collectionId",
+          (ROW_NUMBER() OVER (ORDER BY "displayOrder", "addedAt") - 1)::int AS ord
+        FROM "FranchiseCollection"
+        WHERE "franchiseId" = ${franchiseId}
+      ) AS r
+      WHERE fc."franchiseId" = ${franchiseId} AND fc."collectionId" = r."collectionId"`,
+  ]);
   refreshFranchises();
   return {};
 }
@@ -186,12 +183,11 @@ export async function reorderFranchiseCollections(
     ) {
       return true;
     }
-    for (const [displayOrder, collectionId] of submitted.entries()) {
-      await tx.franchiseCollection.update({
-        where: { franchiseId_collectionId: { franchiseId, collectionId } },
-        data: { displayOrder },
-      });
-    }
+    await tx.$executeRaw`
+      UPDATE "FranchiseCollection" AS fc
+      SET "displayOrder" = v.ord
+      FROM unnest(${submitted}::text[], ${submitted.map((_, index) => index)}::int[]) AS v(id, ord)
+      WHERE fc."franchiseId" = ${franchiseId} AND fc."collectionId" = v.id`;
     return false;
   });
   if (stale) return { error: STALE_ORDER };

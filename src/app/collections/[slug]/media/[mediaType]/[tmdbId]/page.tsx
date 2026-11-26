@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { MediaDetailView } from "@/features/media/components/media-detail";
-import { getCollectionBySlug } from "@/features/collections";
+import { getCollectionSummaryBySlug } from "@/features/collections";
 
 export const revalidate = 3600;
 
@@ -18,7 +18,7 @@ export default async function CollectionMediaPage({
   const tmdbId = Number(rawId);
   if (!Number.isInteger(tmdbId) || tmdbId <= 0) notFound();
 
-  const collection = await getCollectionBySlug(slug);
+  const collection = await getCollectionSummaryBySlug(slug);
   if (!collection) notFound();
 
   return (

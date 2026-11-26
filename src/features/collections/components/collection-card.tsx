@@ -7,7 +7,6 @@ type CollectionCardProps = {
   collection: {
     slug: string;
     name: string;
-    description: string;
     genres: string[];
     coverImageUrl: string | null;
     _count: { media: number };

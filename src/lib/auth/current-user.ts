@@ -1,10 +1,12 @@
 import "server-only";
 
 import { auth } from "@clerk/nextjs/server";
+import { cache } from "react";
 import { syncCurrentUser } from "@/lib/auth/sync-current-user";
 import { getPrismaClient } from "@/lib/prisma";
 
-export async function getCurrentUser() {
+// React cache() dedupes the lookup across layout, page and helpers per request.
+export const getCurrentUser = cache(async () => {
   const { userId } = await auth();
   if (!userId) return null;
 
@@ -15,7 +17,7 @@ export async function getCurrentUser() {
 
   // Webhook has not landed yet (or was missed): fall back to the lazy sync.
   return syncCurrentUser();
-}
+});
 
 export async function requireCurrentUser() {
   const user = await getCurrentUser();
