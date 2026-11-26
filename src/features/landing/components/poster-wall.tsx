@@ -50,7 +50,7 @@ export function PosterWall({ posters }: { posters: Poster[] }) {
           </div>
         ))}
       </div>
-      <div className="absolute inset-0 bg-landing-bg/70 lg:bg-landing-bg/25" />
+      <div className="absolute inset-0 bg-landing-bg/80 lg:bg-landing-bg/25" />
     </div>
   );
 }

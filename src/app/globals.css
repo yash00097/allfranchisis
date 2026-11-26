@@ -323,6 +323,11 @@ body:has(.landing-page) {
   line-height: 1.75rem;
   font-weight: var(--font-weight-semibold);
 }
+@utility title-1 {
+  font-size: var(--text-xl);
+  line-height: 1.75rem;
+  font-weight: var(--font-weight-medium);
+}
 @utility title-2 {
   font-size: var(--text-lg);
   line-height: 1.75rem;
@@ -343,6 +348,11 @@ body:has(.landing-page) {
   line-height: 1.5rem;
   font-weight: var(--font-weight-normal);
 }
+@utility body-5 {
+  font-size: var(--text-sm);
+  line-height: 1.25rem;
+  font-weight: var(--font-weight-medium);
+}
 @utility body-6 {
   font-size: var(--text-sm);
   line-height: 1.25rem;
@@ -357,6 +367,11 @@ body:has(.landing-page) {
   font-size: var(--text-sm);
   line-height: 1.25rem;
   font-weight: var(--font-weight-semibold);
+}
+@utility caption-1 {
+  font-size: var(--text-sm);
+  line-height: 1.25rem;
+  font-weight: var(--font-weight-medium);
 }
 @utility caption-3 {
   font-size: var(--text-xs);
@@ -375,6 +390,11 @@ body:has(.landing-page) {
 
 .landing-page p {
   text-wrap: pretty;
+}
+
+.landing-mono {
+  font-family: var(--font-landing-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .landing-hero-heading {

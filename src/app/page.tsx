@@ -11,7 +11,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CollectionCard } from "@/features/collections/components/collection-card";
-import { landingFont } from "@/features/landing/components/font";
+import { landingFont, landingMono } from "@/features/landing/components/font";
 import { PosterWall } from "@/features/landing/components/poster-wall";
 import { Reveal } from "@/features/landing/components/reveal";
 import { TaglineReveal } from "@/features/landing/components/tagline-reveal";
@@ -20,6 +20,7 @@ import {
   listCollectionDiscovery,
   listCollectionGenres,
 } from "@/features/collections";
+import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -109,15 +110,26 @@ const FAQ = [
 
 const TAGLINE = [
   "Some stories need one film.",
-  "The best ones need a whole universe.",
+  "The best ones need",
+  "a whole universe.",
   "We keep it in order.",
 ];
 
 const CONTAINER = "mx-auto w-full max-w-7xl px-4 sm:px-6";
 const SECTION = "py-16 sm:py-24";
+const EASE = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+const QUIET_LINK = cn(
+  "button-sm group inline-flex w-fit items-center gap-2 text-landing-muted transition-colors duration-300 hover:text-landing-fg",
+  EASE,
+  FOCUS,
+);
+// Mobile rails scroll edge to edge; wider screens switch to a grid.
+const RAIL =
+  "-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:overflow-visible sm:px-0";
 
+const pad = (n: number) => String(n).padStart(2, "0");
 const plural = (count: number, one: string, many = `${one}s`) =>
   `${count.toLocaleString("en-US")} ${count === 1 ? one : many}`;
 
@@ -136,44 +148,69 @@ async function loadLandingContent() {
   }
 }
 
-function PrimaryCta({ className }: { className?: string }) {
+function PrimaryCta() {
   return (
     <Link
       href="/collections"
       prefetch
       className={cn(
-        "button-md group inline-flex w-fit items-center gap-2 bg-primary px-3 py-2 text-primary-foreground transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:opacity-90 active:scale-[0.98]",
+        "button-md group inline-flex w-fit items-center gap-2 bg-primary px-3 py-2 text-primary-foreground transition-[opacity,transform] duration-300 hover:opacity-90 active:scale-[0.98]",
+        EASE,
         FOCUS,
-        className,
       )}
     >
       Explore collections
       <ArrowRight
         aria-hidden="true"
-        className="size-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-1"
+        className={cn(
+          "size-4 transition-transform duration-300 group-hover:translate-x-1",
+          EASE,
+        )}
+      />
+    </Link>
+  );
+}
+
+function ArrowLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={QUIET_LINK}>
+      {children}
+      <ArrowRight
+        aria-hidden="true"
+        className={cn(
+          "size-4 transition-transform duration-300 group-hover:translate-x-1",
+          EASE,
+        )}
       />
     </Link>
   );
 }
 
 function SectionHeading({
-  kicker,
+  id,
   title,
   children,
 }: {
-  kicker: string;
+  id: string;
   title: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <div className="flex max-w-[680px] flex-col gap-3">
-      <p className="caption-3 uppercase tracking-widest text-primary">
-        {kicker}
-      </p>
-      <h2 className="heading-4 sm:heading-3 text-landing-fg">{title}</h2>
+      <h2 id={id} className="heading-4 sm:heading-3 text-landing-fg">
+        {title}
+      </h2>
       {children ? (
         <p className="body-3 text-landing-muted">{children}</p>
       ) : null}
+    </div>
+  );
+}
+
+function SectionTop({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      {children}
     </div>
   );
 }
@@ -184,7 +221,7 @@ function CollectionRow({
   collections: Parameters<typeof CollectionCard>[0]["collection"][];
 }) {
   return (
-    <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+    <div className={cn(RAIL, "sm:grid-cols-2 lg:grid-cols-4")}>
       {collections.map((collection) => (
         <div
           key={collection.slug}
@@ -197,18 +234,87 @@ function CollectionRow({
   );
 }
 
+type Featured = NonNullable<
+  Awaited<ReturnType<typeof getLandingData>>["featured"]
+>;
+
+function WatchOrder({ featured }: { featured: Featured }) {
+  const remaining = featured._count.media - featured.media.length;
+  return (
+    <div className="flex flex-col gap-6">
+      <ol className={cn(RAIL, "sm:grid-cols-4 lg:grid-cols-8")}>
+        {featured.media.map(({ mediaItem }, index) => {
+          const poster = tmdbImage(mediaItem.posterPath, "w342");
+          return (
+            <li
+              key={mediaItem.id}
+              className="relative flex w-[40%] shrink-0 snap-start flex-col gap-3 sm:w-auto"
+            >
+              <div className="flex items-center gap-3" aria-hidden="true">
+                <span className="landing-mono caption-3 text-primary">
+                  {pad(index + 1)}
+                </span>
+                <span className="h-px flex-1 bg-landing-line" />
+              </div>
+              {poster ? (
+                <img
+                  src={poster}
+                  srcSet={tmdbSrcSet(mediaItem.posterPath, [185, 342])}
+                  sizes="(min-width: 1024px) 150px, (min-width: 640px) 25vw, 40vw"
+                  alt={`${mediaItem.title} poster`}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[2/3] w-full bg-landing-raised object-cover ring-1 ring-landing-line"
+                />
+              ) : (
+                <div className="caption-5 flex aspect-[2/3] w-full items-center justify-center bg-landing-raised p-3 text-center text-landing-muted ring-1 ring-landing-line">
+                  No poster
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <span className="sr-only">Entry {index + 1}:</span>
+                <span className="title-4 line-clamp-2 text-landing-fg">
+                  {mediaItem.title}
+                </span>
+                <span className="caption-5 text-landing-muted">
+                  <span className="landing-mono">
+                    {mediaItem.releaseDate?.getUTCFullYear() ?? "TBA"}
+                  </span>
+                  {" · "}
+                  {mediaItem.isAnimated ? "Animated " : ""}
+                  {mediaItem.mediaType === "MOVIE" ? "movie" : "series"}
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="flex flex-col gap-3 border-landing-line border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="caption-2 text-landing-muted">
+          {featured.name}
+          {remaining > 0
+            ? ` continues with ${plural(remaining, "more entry", "more entries")}.`
+            : "."}
+        </p>
+        <ArrowLink href={`/collections/${featured.slug}`}>
+          Open the full collection
+        </ArrowLink>
+      </div>
+    </div>
+  );
+}
+
 export default async function HomePage() {
   const content = await loadLandingContent();
   const stats = content?.stats;
-  const proof = stats
-    ? [
-        plural(stats.collectionCount, "collection"),
-        plural(stats.movieCount, "movie"),
-        plural(stats.showCount, "TV series", "TV series"),
-      ].filter(
-        (_, index) =>
-          [stats.collectionCount, stats.movieCount, stats.showCount][index],
-      )
+  const statItems = stats
+    ? (
+        [
+          ["Collections", stats.collectionCount, "collection", "collections"],
+          ["Movies", stats.movieCount, "movie", "movies"],
+          ["TV series", stats.showCount, "TV series", "TV series"],
+        ] as const
+      ).filter(([, value]) => value > 0)
     : [];
   const featured = content?.featured;
   const recent = content?.discovery.recentlyUpdated ?? [];
@@ -229,6 +335,7 @@ export default async function HomePage() {
     <div
       className={cn(
         landingFont.className,
+        landingMono.variable,
         "landing-page bg-landing-bg text-landing-fg",
       )}
     >
@@ -251,12 +358,17 @@ export default async function HomePage() {
               "relative flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
             )}
           >
-            <p
-              className="landing-enter caption-3 uppercase tracking-widest text-primary"
-              style={{ ["--enter-step" as string]: 0 }}
-            >
-              Curated watch orders
-            </p>
+            {statItems.length > 0 ? (
+              <p
+                className="landing-enter caption-1 inline-flex w-fit items-center gap-2 border border-landing-line bg-landing-bg/70 px-3 py-1 text-landing-muted backdrop-blur-md"
+                style={{ ["--enter-step" as string]: 0 }}
+              >
+                <span aria-hidden="true" className="size-2 bg-primary" />
+                {statItems
+                  .map(([, value, one, many]) => plural(value, one, many))
+                  .join(" · ")}
+              </p>
+            ) : null}
             <h1
               className="landing-enter landing-hero-heading heading-4 sm:heading-2 lg:heading-1 max-w-[680px] pb-1"
               style={{ ["--enter-step" as string]: 1 }}
@@ -267,7 +379,7 @@ export default async function HomePage() {
               <span className="whitespace-nowrap">meant to be watched.</span>
             </h1>
             <p
-              className="landing-enter title-2 max-w-[680px] text-landing-muted"
+              className="landing-enter title-2 max-w-[560px] text-landing-muted"
               style={{ ["--enter-step" as string]: 2 }}
             >
               AllFranchisis gathers the movies, series and animated spinoffs of
@@ -275,144 +387,63 @@ export default async function HomePage() {
               comes next.
             </p>
             <div
-              className="landing-enter flex flex-col gap-4 pt-2"
+              className="landing-enter flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:gap-6"
               style={{ ["--enter-step" as string]: 3 }}
             >
               <PrimaryCta />
-              {proof.length > 0 ? (
-                <p className="caption-5 text-landing-muted">
-                  {proof.join(" · ")}
-                </p>
-              ) : null}
+              <p className="caption-2 text-landing-muted">
+                No account needed to browse.
+              </p>
             </div>
           </div>
         </section>
 
-        {recent.length > 0 ? (
-          <section className={SECTION} aria-labelledby="recent-heading">
-            <Reveal className={cn(CONTAINER, "flex flex-col gap-8")}>
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <h2
-                  id="recent-heading"
-                  className="heading-5 sm:heading-4 text-landing-fg"
-                >
-                  Recently added and updated
-                </h2>
-                <Link
-                  href="/collections"
-                  className={cn(
-                    "button-sm inline-flex items-center gap-1 text-landing-muted transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-landing-fg",
-                    FOCUS,
-                  )}
-                >
-                  See all collections
-                  <ArrowRight aria-hidden="true" className="size-4" />
-                </Link>
-              </div>
-              <CollectionRow collections={recent} />
+        {featured && featured.media.length > 0 ? (
+          <section className={SECTION} aria-labelledby="order-heading">
+            <Reveal className={cn(CONTAINER, "flex flex-col gap-12")}>
+              <SectionHeading
+                id="order-heading"
+                title={
+                  <>
+                    Sequels, spinoffs, reboots.
+                    <br />
+                    One list untangles them.
+                  </>
+                }
+              >
+                Release dates rarely tell you where to start. Here is how{" "}
+                {featured.name} opens, in the order an editor picked for
+                watching.
+              </SectionHeading>
+              <WatchOrder featured={featured} />
             </Reveal>
           </section>
         ) : null}
 
         <section
-          className={cn(SECTION, "bg-landing-surface")}
-          aria-labelledby="order-heading"
+          className={cn(
+            SECTION,
+            "border-landing-line border-y bg-landing-surface",
+          )}
+          aria-labelledby="benefits-heading"
         >
           <Reveal
             className={cn(
               CONTAINER,
-              "grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16",
+              "grid gap-12 lg:grid-cols-[1fr_2fr] lg:gap-16",
             )}
           >
-            <div className="flex flex-col gap-6">
-              <div className="flex max-w-[680px] flex-col gap-3">
-                <p className="caption-3 uppercase tracking-widest text-primary">
-                  The problem
-                </p>
-                <h2
-                  id="order-heading"
-                  className="heading-4 sm:heading-3 text-landing-fg"
-                >
-                  Sequels, spinoffs, reboots.
-                  <br />
-                  One list untangles them.
-                </h2>
-              </div>
-              <p className="body-3 max-w-[560px] text-landing-muted">
-                Big universes spread across years of films, several series and
-                animated side stories. Release dates alone rarely tell you where
-                to start. A collection puts every entry in one place, in the
-                order an editor picked for watching.
-              </p>
-              {featured ? (
-                <Link
-                  href={`/collections/${featured.slug}`}
-                  className={cn(
-                    "button-sm inline-flex w-fit items-center gap-1 text-landing-fg underline-offset-4 hover:underline",
-                    FOCUS,
-                  )}
-                >
-                  Open the full {featured.name} collection
-                  <ArrowRight aria-hidden="true" className="size-4" />
-                </Link>
-              ) : null}
-            </div>
-
-            {featured && featured.media.length > 0 ? (
-              <figure className="flex flex-col gap-3 border border-landing-line bg-landing-bg p-4 sm:p-6">
-                <figcaption className="flex items-baseline justify-between gap-4">
-                  <span className="title-3 text-landing-fg">
-                    {featured.name}
-                  </span>
-                  <span className="caption-5 text-landing-muted">
-                    {plural(featured._count.media, "entry", "entries")}
-                  </span>
-                </figcaption>
-                <ol className="flex flex-col">
-                  {featured.media.map(({ mediaItem }, index) => (
-                    <li
-                      key={mediaItem.id}
-                      className="flex items-center gap-4 border-landing-line border-t py-3"
-                    >
-                      <span className="caption-3 w-6 text-primary tabular-nums">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="title-4 min-w-0 flex-1 truncate text-landing-fg">
-                        {mediaItem.title}
-                      </span>
-                      <span className="caption-5 hidden text-landing-muted sm:inline">
-                        {mediaItem.isAnimated ? "Animated " : ""}
-                        {mediaItem.mediaType === "MOVIE" ? "movie" : "TV show"}
-                      </span>
-                      <span className="caption-5 w-10 text-right text-landing-muted tabular-nums">
-                        {mediaItem.releaseDate?.getUTCFullYear() ?? "TBA"}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </figure>
-            ) : null}
-          </Reveal>
-        </section>
-
-        <section className={SECTION} aria-labelledby="benefits-heading">
-          <Reveal className={cn(CONTAINER, "flex flex-col gap-12")}>
-            <SectionHeading
-              kicker="Why it helps"
-              title={<span id="benefits-heading">Know what comes next</span>}
-            >
+            <SectionHeading id="benefits-heading" title="Know what comes next">
               Everything a franchise needs to be watched in sequence, in one
               place.
             </SectionHeading>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="grid gap-x-12 sm:grid-cols-2">
               {BENEFITS.map(({ icon: Icon, title, body }) => (
                 <li
                   key={title}
-                  className="flex flex-col gap-4 border border-landing-line bg-landing-surface p-6 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1"
+                  className="flex flex-col gap-3 border-landing-line border-t py-6"
                 >
-                  <span className="flex size-10 items-center justify-center bg-primary text-primary-foreground">
-                    <Icon aria-hidden="true" className="size-5" />
-                  </span>
+                  <Icon aria-hidden="true" className="size-5 text-primary" />
                   <h3 className="heading-6 text-landing-fg">{title}</h3>
                   <p className="body-6 text-landing-muted">{body}</p>
                 </li>
@@ -421,76 +452,92 @@ export default async function HomePage() {
           </Reveal>
         </section>
 
+        {recent.length > 0 ? (
+          <section className={SECTION} aria-labelledby="recent-heading">
+            <Reveal className={cn(CONTAINER, "flex flex-col gap-12")}>
+              <SectionTop>
+                <SectionHeading
+                  id="recent-heading"
+                  title="Recently added and updated"
+                >
+                  New universes and fresh entries, straight from the catalog.
+                </SectionHeading>
+                <ArrowLink href="/collections">See all collections</ArrowLink>
+              </SectionTop>
+              <CollectionRow collections={recent} />
+            </Reveal>
+          </section>
+        ) : null}
+
         <section className="py-24" aria-label="What we do">
-          <div className={cn(CONTAINER, "min-h-[60vh] content-center")}>
+          <div className={CONTAINER}>
             <TaglineReveal lines={TAGLINE} />
           </div>
         </section>
 
         <section
-          className={cn(SECTION, "bg-landing-surface")}
+          className={cn(
+            SECTION,
+            "border-landing-line border-y bg-landing-surface",
+          )}
           aria-labelledby="steps-heading"
         >
           <Reveal className={cn(CONTAINER, "flex flex-col gap-12")}>
             <SectionHeading
-              kicker="How it works"
-              title={<span id="steps-heading">Three steps to the start</span>}
+              id="steps-heading"
+              title="Three steps to the start"
             />
-            <ol className="grid gap-4 md:grid-cols-3">
+            <ol className="grid gap-8 md:grid-cols-3 md:gap-6">
               {STEPS.map(({ title, body }, index) => (
-                <li
-                  key={title}
-                  className="flex flex-col gap-3 border border-landing-line bg-landing-bg p-6"
-                >
-                  <span className="heading-3 text-primary tabular-nums">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
+                <li key={title} className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3" aria-hidden="true">
+                    <span className="landing-mono title-4 flex size-10 shrink-0 items-center justify-center border border-landing-line bg-landing-bg text-primary">
+                      {pad(index + 1)}
+                    </span>
+                    <span className="h-px flex-1 bg-landing-line max-md:hidden" />
+                  </div>
                   <h3 className="heading-6 text-landing-fg">{title}</h3>
-                  <p className="body-6 text-landing-muted">{body}</p>
+                  <p className="body-6 max-w-sm text-landing-muted">{body}</p>
                 </li>
               ))}
             </ol>
           </Reveal>
         </section>
 
-        {stats && stats.collectionCount > 0 ? (
+        {statItems.length > 0 ? (
           <section className={SECTION} aria-labelledby="library-heading">
-            <Reveal className={cn(CONTAINER, "flex flex-col gap-12")}>
-              <SectionHeading
-                kicker="The library"
-                title={<span id="library-heading">What is inside today</span>}
-              >
-                Live counts from the catalog. They grow as new collections are
-                curated.
-              </SectionHeading>
-              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {[
-                  ["Collections", stats.collectionCount],
-                  ["Movies", stats.movieCount],
-                  ["TV series", stats.showCount],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="flex flex-col gap-2 border border-landing-line bg-landing-surface p-6"
-                  >
-                    <dt className="title-4 text-landing-muted">{label}</dt>
-                    <dd className="heading-2 text-landing-fg tabular-nums">
-                      {value.toLocaleString("en-US")}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+            <Reveal className={cn(CONTAINER, "flex flex-col gap-16")}>
+              <div className="flex flex-col gap-12">
+                <SectionHeading
+                  id="library-heading"
+                  title="What is inside today"
+                >
+                  Live counts from the catalog. They grow as new collections are
+                  curated.
+                </SectionHeading>
+                <dl className="grid grid-cols-1 border border-landing-line max-sm:divide-y sm:grid-cols-3 sm:divide-x divide-landing-line">
+                  {statItems.map(([label, value]) => (
+                    <div key={label} className="flex flex-col gap-2 p-6">
+                      <dt className="caption-1 text-landing-muted">{label}</dt>
+                      <dd className="landing-mono heading-2 text-landing-fg">
+                        {value.toLocaleString("en-US")}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
 
               {genres.length > 0 ? (
                 <div className="flex flex-col gap-4">
-                  <h3 className="title-3 text-landing-fg">Browse by genre</h3>
+                  <h3 className="title-2 text-landing-fg">Browse by genre</h3>
                   <ul className="flex flex-wrap gap-2">
                     {genres.map((genre) => (
                       <li key={genre}>
                         <Link
                           href={`/collections?genre=${encodeURIComponent(genre)}`}
                           className={cn(
-                            "button-sm inline-block border border-primary px-3 py-2 text-landing-fg transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-primary hover:text-primary-foreground active:scale-[0.98]",
+                            "button-sm inline-block border border-landing-line px-3 py-2 text-landing-fg transition-colors duration-300 hover:border-primary hover:text-primary active:scale-[0.98]",
+                            EASE,
                             FOCUS,
                           )}
                         >
@@ -504,7 +551,7 @@ export default async function HomePage() {
 
               {favorites.length > 0 ? (
                 <div className="flex flex-col gap-6">
-                  <h3 className="title-3 text-landing-fg">
+                  <h3 className="title-2 text-landing-fg">
                     Most favorited by members
                   </h3>
                   <CollectionRow collections={favorites} />
@@ -515,63 +562,65 @@ export default async function HomePage() {
         ) : null}
 
         <section
-          className={cn(SECTION, "bg-landing-surface")}
+          className={cn(SECTION, "border-landing-line border-t")}
           aria-labelledby="faq-heading"
         >
           <Reveal
             className={cn(
               CONTAINER,
-              "grid grid-cols-1 gap-12 lg:grid-cols-[1fr_2fr]",
+              "grid grid-cols-1 gap-12 lg:grid-cols-[1fr_2fr] lg:gap-16",
             )}
           >
-            <SectionHeading
-              kicker="FAQ"
-              title={<span id="faq-heading">Questions, answered</span>}
-            />
-            <div className="flex flex-col gap-2">
+            <SectionHeading id="faq-heading" title="Questions, answered" />
+            <div className="flex flex-col divide-y divide-landing-line border-landing-line border-y">
               {FAQ.map(({ q, a }) => (
-                <details
-                  key={q}
-                  className="group border border-landing-line bg-landing-bg"
-                >
+                <details key={q} className="group">
                   <summary
                     className={cn(
-                      "title-3 flex cursor-pointer list-none items-center justify-between gap-4 p-4 text-landing-fg [&::-webkit-details-marker]:hidden",
+                      "title-2 flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-landing-fg transition-colors duration-300 hover:text-primary [&::-webkit-details-marker]:hidden",
+                      EASE,
                       FOCUS,
                     )}
                   >
                     {q}
                     <Plus
                       aria-hidden="true"
-                      className="size-5 shrink-0 text-primary transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-open:rotate-45"
+                      className={cn(
+                        "size-5 shrink-0 text-primary transition-transform duration-500 group-open:rotate-45",
+                        EASE,
+                      )}
                     />
                   </summary>
-                  <p className="body-6 px-4 pb-4 text-landing-muted">{a}</p>
+                  <p className="body-3 max-w-[680px] pb-6 text-landing-muted">
+                    {a}
+                  </p>
                 </details>
               ))}
             </div>
           </Reveal>
         </section>
 
-        <section className="py-24" aria-labelledby="final-heading">
-          <Reveal className={cn(CONTAINER, "flex flex-col items-start gap-6")}>
-            <h2
-              id="final-heading"
-              className="landing-hero-heading heading-3 sm:heading-2 max-w-[680px] pb-1"
-            >
-              Pick a universe.
-              <br />
-              Start at the beginning.
-            </h2>
-            <p className="title-2 max-w-[680px] text-landing-muted">
-              {ACCOUNT_LINE}
-            </p>
-            <PrimaryCta />
+        <section className="pb-16 sm:pb-24" aria-labelledby="final-heading">
+          <Reveal className={CONTAINER}>
+            <div className="flex flex-col items-center gap-6 border border-landing-line bg-landing-surface px-6 py-16 text-center sm:py-24">
+              <h2
+                id="final-heading"
+                className="landing-hero-heading heading-3 sm:heading-2 max-w-[680px] pb-1"
+              >
+                Pick a universe.
+                <br />
+                Start at the beginning.
+              </h2>
+              <p className="title-2 max-w-[560px] text-landing-muted">
+                {ACCOUNT_LINE}
+              </p>
+              <PrimaryCta />
+            </div>
           </Reveal>
         </section>
       </main>
 
-      <footer className="border-landing-line border-t bg-landing-surface">
+      <footer className="border-landing-line border-t">
         <div
           className={cn(
             CONTAINER,
@@ -587,11 +636,12 @@ export default async function HomePage() {
               not endorsed or certified by TMDB.
             </p>
           </div>
-          <nav aria-label="Footer" className="flex gap-1">
+          <nav aria-label="Footer" className="-mx-3 flex gap-1">
             <Link
               href="/collections"
               className={cn(
-                "button-sm px-3 py-2 text-landing-muted hover:text-landing-fg",
+                "button-sm px-3 py-2 text-landing-muted transition-colors duration-300 hover:text-landing-fg",
+                EASE,
                 FOCUS,
               )}
             >
@@ -602,7 +652,8 @@ export default async function HomePage() {
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "button-sm px-3 py-2 text-landing-muted hover:text-landing-fg",
+                "button-sm px-3 py-2 text-landing-muted transition-colors duration-300 hover:text-landing-fg",
+                EASE,
                 FOCUS,
               )}
             >

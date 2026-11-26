@@ -40,7 +40,7 @@ export function TaglineReveal({ lines }: { lines: string[] }) {
   return (
     <p
       ref={ref}
-      className="heading-4 sm:heading-2 lg:heading-1 max-w-[680px] text-landing-fg"
+      className="heading-4 sm:heading-3 lg:heading-2 mx-auto max-w-[680px] text-center text-landing-fg"
     >
       {words.map((line, lineIndex) => (
         <Fragment key={lines[lineIndex]}>

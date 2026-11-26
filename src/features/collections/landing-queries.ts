@@ -14,7 +14,7 @@ const inAnyCollection = { collections: { some: {} } } as const;
 
 export async function getLandingData() {
   return reviveDates(
-    await unstable_cache(readLandingData, ["landing-data"], {
+    await unstable_cache(readLandingData, ["landing-data-v2"], {
       tags: [COLLECTIONS_TAG, DISCOVERY_TAG],
       revalidate: 300,
     })(),
@@ -56,6 +56,7 @@ async function readLandingData() {
                 select: {
                   id: true,
                   title: true,
+                  posterPath: true,
                   mediaType: true,
                   releaseDate: true,
                   isAnimated: true,
