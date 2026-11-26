@@ -23,12 +23,15 @@ const SCALE = 1.1;
 const COS = Math.cos(TILT);
 const SIN = Math.sin(TILT);
 const COPIES_X = 3;
+// Local px/s per column; even columns drift up, odd columns down.
+const DRIFT = [12, 9, 11, 8];
+const DRIFT_EASE = 0.6; // seconds to ease drift in/out around a drag
 const MAX_COPIES_Y = 6;
 
 const wrap = (value: number, period: number, min: number) =>
   ((((value - min) % period) + period) % period) + min;
 
-type Column = { el: HTMLElement; period: number };
+type Column = { el: HTMLElement; period: number; index: number };
 
 // Drag state lives in motion values and refs: pointer moves write transforms
 // straight to the DOM and never re-render React.
@@ -45,6 +48,7 @@ export function InfiniteGrid({
   const measured = useRef({ columns: [] as Column[], periodX: 0, tilesX: 1 });
   const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
   const inertia = useRef<AnimationPlaybackControls[]>([]);
+  const drift = useRef<number[]>([]);
   const [x] = useState(() => motionValue(0));
   const [y] = useState(() => motionValue(0));
   const [copiesY, setCopiesY] = useState(1);
@@ -61,8 +65,9 @@ export function InfiniteGrid({
     const ly = (sy * COS - sx * SIN) / SCALE;
     const base = tilesX > 1 ? -periodX : 0;
     row.style.transform = `translate3d(${base + wrap(lx, periodX, -periodX / 2)}px,0,0)`;
-    for (const { el, period } of cols) {
-      el.style.transform = `translate3d(0,${wrap(ly, period, -period)}px,0)`;
+    for (const { el, period, index } of cols) {
+      const offset = ly + (drift.current[index] ?? 0);
+      el.style.transform = `translate3d(0,${wrap(offset, period, -period)}px,0)`;
     }
   }, [x, y]);
 
@@ -76,7 +81,8 @@ export function InfiniteGrid({
       const copy = el.firstElementChild as HTMLElement | null;
       const rowGap = Number.parseFloat(getComputedStyle(el).rowGap) || 0;
       const period = copy?.offsetHeight ? copy.offsetHeight + rowGap : 0;
-      if (period > 0) cols.push({ el, period });
+      if (period > 0)
+        cols.push({ el, period, index: Number(el.dataset.column) });
     }
     measured.current = {
       columns: cols,
@@ -116,12 +122,54 @@ export function InfiniteGrid({
   }, [collect, render, copiesX, copiesY]);
 
   useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const schedule = () => frame.render(render);
     const offX = x.on("change", schedule);
     const offY = y.on("change", schedule);
+
+    // Auto-drift runs only while the wall is on screen and eases out while the
+    // user drags or the release inertia is still moving.
+    let visible = false;
+    let frameId = 0;
+    let last = 0;
+    let factor = 1;
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, last ? (now - last) / 1000 : 0);
+      last = now;
+      const busy =
+        pointer.current !== null ||
+        Math.abs(x.getVelocity()) + Math.abs(y.getVelocity()) > 20;
+      const target = busy || reduced.matches ? 0 : 1;
+      factor += (target - factor) * (1 - Math.exp(-dt / DRIFT_EASE));
+      if (factor > 0.001) {
+        DRIFT.forEach((speed, index) => {
+          const direction = index % 2 ? 1 : -1;
+          drift.current[index] =
+            (drift.current[index] ?? 0) + direction * speed * factor * dt;
+        });
+        render();
+      }
+      frameId = requestAnimationFrame(tick);
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry?.isIntersecting ?? false;
+      if (visible && !frameId) {
+        last = 0;
+        frameId = requestAnimationFrame(tick);
+      } else if (!visible) {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+    });
+    observer.observe(root);
+
     return () => {
       offX();
       offY();
+      observer.disconnect();
+      cancelAnimationFrame(frameId);
       for (const controls of inertia.current) controls.stop();
     };
   }, [render, x, y]);
