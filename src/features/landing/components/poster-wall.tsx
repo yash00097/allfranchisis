@@ -1,31 +1,62 @@
 import { tmdbImage, tmdbSrcSet } from "@/lib/tmdb/images";
+import { cn } from "@/lib/utils";
 
 type Poster = { id: string; title: string; posterPath: string | null };
 
-const COLUMN_COUNT = 4;
 const MIN_PER_COLUMN = 7;
-const DURATIONS = ["52s", "64s", "58s", "70s"];
+const DURATIONS = ["52s", "64s", "58s", "70s", "61s", "55s"];
+
+const VARIANTS = {
+  hero: {
+    columns: 4,
+    wrapper: "landing-wall--enter lg:left-auto lg:w-1/2",
+    grid: "grid-cols-3 lg:grid-cols-4",
+    scrim: "bg-landing-bg/80 lg:bg-landing-bg/25",
+  },
+  // Muted full-width wall behind the final CTA, bookending the hero.
+  backdrop: {
+    columns: 6,
+    wrapper: "landing-wall--backdrop",
+    grid: "grid-cols-5 lg:grid-cols-6",
+    scrim: "bg-landing-surface/85",
+  },
+} as const;
 
 // Short libraries repeat posters so every column still overflows the hero.
-function toColumns(posters: Poster[]) {
-  const needed = Math.max(posters.length, COLUMN_COUNT * MIN_PER_COLUMN);
-  const columns: Poster[][] = Array.from({ length: COLUMN_COUNT }, () => []);
+function toColumns(posters: Poster[], count: number) {
+  const needed = Math.max(posters.length, count * MIN_PER_COLUMN);
+  const columns: Poster[][] = Array.from({ length: count }, () => []);
   for (let i = 0; i < needed; i++) {
-    columns[i % COLUMN_COUNT]?.push(posters[i % posters.length] as Poster);
+    columns[i % count]?.push(posters[i % posters.length] as Poster);
   }
   return columns;
 }
 
-export function PosterWall({ posters }: { posters: Poster[] }) {
+export function PosterWall({
+  posters,
+  variant = "hero",
+}: {
+  posters: Poster[];
+  variant?: keyof typeof VARIANTS;
+}) {
   if (posters.length === 0) return null;
+  const { columns, wrapper, grid, scrim } = VARIANTS[variant];
 
   return (
     <div
       aria-hidden="true"
-      className="landing-wall pointer-events-none absolute inset-0 overflow-hidden lg:left-auto lg:w-1/2"
+      className={cn(
+        "landing-wall pointer-events-none absolute inset-0 overflow-hidden",
+        wrapper,
+      )}
     >
-      <div className="-top-1/4 absolute inset-x-0 grid h-[150%] rotate-[-8deg] scale-110 grid-cols-3 gap-3 lg:grid-cols-4">
-        {toColumns(posters).map((column, columnIndex) => (
+      <div
+        className={cn(
+          "-top-1/4 absolute inset-x-0 grid h-[150%] rotate-[-8deg] scale-110 gap-3",
+          grid,
+        )}
+      >
+        {toColumns(posters, columns).map((column, columnIndex) => (
           <div
             key={DURATIONS[columnIndex]}
             className="landing-wall__column flex flex-col gap-3 last:hidden lg:last:flex"
@@ -50,7 +81,7 @@ export function PosterWall({ posters }: { posters: Poster[] }) {
           </div>
         ))}
       </div>
-      <div className="absolute inset-0 bg-landing-bg/80 lg:bg-landing-bg/25" />
+      <div className={cn("absolute inset-0", scrim)} />
     </div>
   );
 }

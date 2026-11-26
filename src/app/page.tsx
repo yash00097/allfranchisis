@@ -9,8 +9,9 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CollectionCard } from "@/features/collections/components/collection-card";
+import { CountUp } from "@/features/landing/components/count-up";
 import { landingFont, landingMono } from "@/features/landing/components/font";
 import { PosterWall } from "@/features/landing/components/poster-wall";
 import { Reveal } from "@/features/landing/components/reveal";
@@ -129,6 +130,17 @@ const QUIET_LINK = cn(
 const RAIL =
   "-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:overflow-visible sm:px-0";
 
+const HERO_LINES = [
+  "Every franchise,",
+  "in the order it was",
+  "meant to be watched.",
+];
+
+// Staggered children read their position from a CSS variable.
+const cssVar = (name: string, value: number) =>
+  ({ [name]: value }) as CSSProperties;
+const stagger = (index: number) => cssVar("--i", index);
+
 const pad = (n: number) => String(n).padStart(2, "0");
 const plural = (count: number, one: string, many = `${one}s`) =>
   `${count.toLocaleString("en-US")} ${count === 1 ? one : many}`;
@@ -222,10 +234,11 @@ function CollectionRow({
 }) {
   return (
     <div className={cn(RAIL, "sm:grid-cols-2 lg:grid-cols-4")}>
-      {collections.map((collection) => (
+      {collections.map((collection, index) => (
         <div
           key={collection.slug}
-          className="w-[70%] shrink-0 snap-start sm:w-auto"
+          className="landing-stagger w-[70%] shrink-0 snap-start sm:w-auto"
+          style={stagger(index)}
         >
           <CollectionCard collection={collection} />
         </div>
@@ -248,13 +261,17 @@ function WatchOrder({ featured }: { featured: Featured }) {
           return (
             <li
               key={mediaItem.id}
-              className="relative flex w-[40%] shrink-0 snap-start flex-col gap-3 sm:w-auto"
+              className="landing-stagger relative flex w-[40%] shrink-0 snap-start flex-col gap-3 sm:w-auto"
+              style={stagger(index)}
             >
               <div className="flex items-center gap-3" aria-hidden="true">
                 <span className="landing-mono caption-3 text-primary">
                   {pad(index + 1)}
                 </span>
-                <span className="h-px flex-1 bg-landing-line" />
+                <span
+                  className="landing-draw h-px flex-1 bg-landing-line"
+                  style={stagger(index)}
+                />
               </div>
               {poster ? (
                 <img
@@ -349,19 +366,24 @@ export default async function HomePage() {
         Skip to content
       </a>
 
+      <div
+        aria-hidden="true"
+        className="landing-progress fixed inset-x-0 top-0 z-[70] h-0.5 bg-primary"
+      />
+
       <main id="main">
         <section className="relative overflow-hidden border-landing-line border-b">
           <PosterWall posters={content?.posters ?? []} />
           <div
             className={cn(
               CONTAINER,
-              "relative flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
+              "landing-hero-exit relative flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
             )}
           >
             {statItems.length > 0 ? (
               <p
                 className="landing-enter caption-1 inline-flex w-fit items-center gap-2 border border-landing-line bg-landing-bg/70 px-3 py-1 text-landing-muted backdrop-blur-md"
-                style={{ ["--enter-step" as string]: 0 }}
+                style={cssVar("--enter-step", 0)}
               >
                 <span aria-hidden="true" className="size-2 bg-primary" />
                 {statItems
@@ -369,18 +391,21 @@ export default async function HomePage() {
                   .join(" · ")}
               </p>
             ) : null}
-            <h1
-              className="landing-enter landing-hero-heading heading-4 sm:heading-2 lg:heading-1 max-w-[680px] pb-1"
-              style={{ ["--enter-step" as string]: 1 }}
-            >
-              Every franchise,
-              <br />
-              in the order it was{" "}
-              <span className="whitespace-nowrap">meant to be watched.</span>
+            <h1 className="heading-4 sm:heading-2 lg:heading-1 max-w-[680px]">
+              {HERO_LINES.map((line, index) => (
+                <span key={line} className="landing-line">
+                  <span
+                    className="landing-hero-heading"
+                    style={cssVar("--line", index)}
+                  >
+                    {line}
+                  </span>
+                </span>
+              ))}
             </h1>
             <p
               className="landing-enter title-2 max-w-[560px] text-landing-muted"
-              style={{ ["--enter-step" as string]: 2 }}
+              style={cssVar("--enter-step", 4)}
             >
               AllFranchisis gathers the movies, series and animated spinoffs of
               each universe into one curated collection. You always know what
@@ -388,7 +413,7 @@ export default async function HomePage() {
             </p>
             <div
               className="landing-enter flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:gap-6"
-              style={{ ["--enter-step" as string]: 3 }}
+              style={cssVar("--enter-step", 5)}
             >
               <PrimaryCta />
               <p className="caption-2 text-landing-muted">
@@ -438,10 +463,11 @@ export default async function HomePage() {
               place.
             </SectionHeading>
             <ul className="grid gap-x-12 sm:grid-cols-2">
-              {BENEFITS.map(({ icon: Icon, title, body }) => (
+              {BENEFITS.map(({ icon: Icon, title, body }, index) => (
                 <li
                   key={title}
-                  className="flex flex-col gap-3 border-landing-line border-t py-6"
+                  className="landing-stagger flex flex-col gap-3 border-landing-line border-t py-6"
+                  style={stagger(index + 1)}
                 >
                   <Icon aria-hidden="true" className="size-5 text-primary" />
                   <h3 className="heading-6 text-landing-fg">{title}</h3>
@@ -489,12 +515,19 @@ export default async function HomePage() {
             />
             <ol className="grid gap-8 md:grid-cols-3 md:gap-6">
               {STEPS.map(({ title, body }, index) => (
-                <li key={title} className="flex flex-col gap-4">
+                <li
+                  key={title}
+                  className="landing-stagger flex flex-col gap-4"
+                  style={stagger(index * 2)}
+                >
                   <div className="flex items-center gap-3" aria-hidden="true">
                     <span className="landing-mono title-4 flex size-10 shrink-0 items-center justify-center border border-landing-line bg-landing-bg text-primary">
                       {pad(index + 1)}
                     </span>
-                    <span className="h-px flex-1 bg-landing-line max-md:hidden" />
+                    <span
+                      className="landing-draw h-px flex-1 bg-landing-line max-md:hidden"
+                      style={stagger(index * 2 + 1)}
+                    />
                   </div>
                   <h3 className="heading-6 text-landing-fg">{title}</h3>
                   <p className="body-6 max-w-sm text-landing-muted">{body}</p>
@@ -516,11 +549,15 @@ export default async function HomePage() {
                   curated.
                 </SectionHeading>
                 <dl className="grid grid-cols-1 border border-landing-line max-sm:divide-y sm:grid-cols-3 sm:divide-x divide-landing-line">
-                  {statItems.map(([label, value]) => (
-                    <div key={label} className="flex flex-col gap-2 p-6">
+                  {statItems.map(([label, value], index) => (
+                    <div
+                      key={label}
+                      className="landing-stagger flex flex-col gap-2 p-6"
+                      style={stagger(index)}
+                    >
                       <dt className="caption-1 text-landing-muted">{label}</dt>
                       <dd className="landing-mono heading-2 text-landing-fg">
-                        {value.toLocaleString("en-US")}
+                        <CountUp value={value} />
                       </dd>
                     </div>
                   ))}
@@ -531,8 +568,12 @@ export default async function HomePage() {
                 <div className="flex flex-col gap-4">
                   <h3 className="title-2 text-landing-fg">Browse by genre</h3>
                   <ul className="flex flex-wrap gap-2">
-                    {genres.map((genre) => (
-                      <li key={genre}>
+                    {genres.map((genre, index) => (
+                      <li
+                        key={genre}
+                        className="landing-stagger"
+                        style={stagger(index)}
+                      >
                         <Link
                           href={`/collections?genre=${encodeURIComponent(genre)}`}
                           className={cn(
@@ -602,7 +643,13 @@ export default async function HomePage() {
 
         <section className="pb-16 sm:pb-24" aria-labelledby="final-heading">
           <Reveal className={CONTAINER}>
-            <div className="flex flex-col items-center gap-6 border border-landing-line bg-landing-surface px-6 py-16 text-center sm:py-24">
+            <div className="relative isolate flex flex-col items-center gap-6 overflow-hidden border border-landing-line bg-landing-surface px-6 py-16 text-center sm:py-24">
+              <div className="-z-10 absolute inset-0">
+                <PosterWall
+                  posters={content?.posters ?? []}
+                  variant="backdrop"
+                />
+              </div>
               <h2
                 id="final-heading"
                 className="landing-hero-heading heading-3 sm:heading-2 max-w-[680px] pb-1"

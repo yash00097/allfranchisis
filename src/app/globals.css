@@ -476,6 +476,111 @@ body:has(.landing-page) {
   }
 }
 
+/* Hero title card: each line rises from behind its own mask. */
+@keyframes landing-line {
+  from {
+    transform: translate3d(0, 105%, 0);
+  }
+}
+
+.landing-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+
+.landing-line > span {
+  display: block;
+  animation: landing-line 1000ms var(--ease-landing) both;
+  animation-delay: calc(150ms + var(--line, 0) * 120ms);
+}
+
+@keyframes landing-wall-in {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+.landing-wall--enter {
+  animation: landing-wall-in 1600ms var(--ease-landing) 200ms both;
+}
+
+.landing-wall.landing-wall--backdrop {
+  mask-image: linear-gradient(
+    180deg,
+    transparent,
+    #000 25%,
+    #000 75%,
+    transparent
+  );
+}
+
+/* Children of a revealed section arrive in reading order. */
+@media (scripting: enabled) {
+  .landing-stagger {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+    transition:
+      opacity 700ms var(--ease-landing),
+      transform 700ms var(--ease-landing);
+    transition-delay: calc(min(var(--i, 0), 12) * 70ms);
+  }
+
+  [data-revealed] .landing-stagger {
+    opacity: 1;
+    transform: none;
+  }
+
+  .landing-draw {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 900ms var(--ease-landing);
+    transition-delay: calc(200ms + min(var(--i, 0), 12) * 70ms);
+  }
+
+  [data-revealed] .landing-draw {
+    transform: none;
+  }
+}
+
+.landing-page details[open] > p {
+  animation: landing-rise 500ms var(--ease-landing) both;
+}
+
+@keyframes landing-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes landing-hero-exit {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -64px, 0) scale(0.98);
+  }
+}
+
+.landing-progress {
+  display: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  .landing-progress {
+    display: block;
+    transform-origin: left;
+    animation: landing-progress linear both;
+    animation-timeline: scroll(root);
+  }
+
+  .landing-hero-exit {
+    animation: landing-hero-exit linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0px 80vh;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-enter {
     animation-name: landing-fade;
@@ -492,5 +597,24 @@ body:has(.landing-page) {
   .landing-word {
     opacity: 1;
     transition: none;
+  }
+
+  .landing-line > span,
+  .landing-wall--enter,
+  .landing-page details[open] > p {
+    animation-name: landing-fade;
+  }
+
+  .landing-stagger,
+  .landing-draw {
+    transform: none;
+  }
+
+  .landing-progress {
+    display: none;
+  }
+
+  .landing-hero-exit {
+    animation: none;
   }
 }
