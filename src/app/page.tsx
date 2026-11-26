@@ -377,7 +377,7 @@ export default async function HomePage() {
           <div
             className={cn(
               CONTAINER,
-              "landing-hero-exit pointer-events-none relative flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
+              "landing-hero-exit pointer-events-none relative lg:mx-0 lg:max-w-none lg:pl-[7vw] flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
             )}
           >
             {statItems.length > 0 ? (

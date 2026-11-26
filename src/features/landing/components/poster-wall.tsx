@@ -10,7 +10,7 @@ const DURATIONS = ["52s", "64s", "58s", "70s", "61s", "55s"];
 const VARIANTS = {
   hero: {
     columns: 4,
-    wrapper: "landing-wall--enter lg:left-auto lg:w-1/2",
+    wrapper: "landing-wall--enter lg:left-auto lg:w-[70%]",
     grid: "grid-cols-3 lg:grid-cols-4",
     scrim: "bg-landing-bg/80 lg:bg-landing-bg/25",
   },
