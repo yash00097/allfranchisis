@@ -377,12 +377,12 @@ export default async function HomePage() {
           <div
             className={cn(
               CONTAINER,
-              "landing-hero-exit relative flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
+              "landing-hero-exit pointer-events-none relative flex min-h-dvh flex-col justify-center gap-6 pt-32 pb-24",
             )}
           >
             {statItems.length > 0 ? (
               <p
-                className="landing-enter caption-1 inline-flex w-fit items-center gap-2 border border-landing-line bg-landing-bg/70 px-3 py-1 text-landing-muted backdrop-blur-md"
+                className="landing-enter caption-1 pointer-events-auto inline-flex w-fit items-center gap-2 border border-landing-line bg-landing-bg/70 px-3 py-1 text-landing-muted backdrop-blur-md"
                 style={cssVar("--enter-step", 0)}
               >
                 <span aria-hidden="true" className="size-2 bg-primary" />
@@ -391,7 +391,7 @@ export default async function HomePage() {
                   .join(" · ")}
               </p>
             ) : null}
-            <h1 className="heading-4 sm:heading-2 lg:heading-1 max-w-[680px]">
+            <h1 className="heading-4 sm:heading-2 lg:heading-1 pointer-events-auto max-w-[680px]">
               {HERO_LINES.map((line, index) => (
                 <span key={line} className="landing-line">
                   <span
@@ -404,7 +404,7 @@ export default async function HomePage() {
               ))}
             </h1>
             <p
-              className="landing-enter title-2 max-w-[560px] text-landing-muted"
+              className="landing-enter title-2 pointer-events-auto max-w-[560px] text-landing-muted"
               style={cssVar("--enter-step", 4)}
             >
               AllFranchisis gathers the movies, series and animated spinoffs of
@@ -412,7 +412,7 @@ export default async function HomePage() {
               comes next.
             </p>
             <div
-              className="landing-enter flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:gap-6"
+              className="landing-enter pointer-events-none flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:gap-6 [&>*]:pointer-events-auto"
               style={cssVar("--enter-step", 5)}
             >
               <PrimaryCta />
