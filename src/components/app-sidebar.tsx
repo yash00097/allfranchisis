@@ -7,14 +7,13 @@ import {
   UserButton,
   useAuth,
 } from "@clerk/nextjs";
-import { LogIn, PanelLeft, PanelLeftOpen, UserPlus } from "lucide-react";
+import { Info, LogIn, PanelLeft, PanelLeftOpen, UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TmdbAttribution } from "@/components/tmdb-attribution";
 import {
   Sidebar,
   SidebarContent,
@@ -151,6 +150,23 @@ export function AppSidebar({
         ))}
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="sm"
+              isActive={isNavItemActive(pathname, "/about")}
+              tooltip="About & Credits"
+              className="text-sidebar-foreground/70"
+              render={<Link href="/about" />}
+              onClick={() => {
+                if (isMobile) setOpenMobile(false);
+              }}
+            >
+              <Info />
+              <span>About & Credits</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <Show when="signed-in">
           <div className="flex items-center gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-0">
             {/* Clerk's popover carries "Manage account" and "Sign out". */}
@@ -194,7 +210,6 @@ export function AppSidebar({
             <ThemeToggle />
           </div>
         </Show>
-        <TmdbAttribution className="px-2 pt-2 group-data-[collapsible=icon]:hidden" />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

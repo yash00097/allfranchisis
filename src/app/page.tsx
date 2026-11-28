@@ -651,6 +651,16 @@ export default async function HomePage() {
             >
               Collections
             </Link>
+            <Link
+              href="/about"
+              className={cn(
+                "button-sm px-3 py-2 text-landing-muted transition-colors duration-300 hover:text-landing-fg",
+                EASE,
+                FOCUS,
+              )}
+            >
+              About
+            </Link>
             <a
               href="https://www.themoviedb.org/"
               target="_blank"

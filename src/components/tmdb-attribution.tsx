@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 
 export function TmdbAttribution({
   className,
+  logoClassName = "w-9",
   textClassName = "text-xs leading-snug text-muted-foreground",
 }: {
   className?: string;
+  logoClassName?: string;
   textClassName?: string;
 }) {
   return (
@@ -21,7 +23,7 @@ export function TmdbAttribution({
           alt="TMDB logo"
           width={512}
           height={369}
-          className="h-auto w-9"
+          className={cn("h-auto", logoClassName)}
         />
       </a>
       <p className={textClassName}>
