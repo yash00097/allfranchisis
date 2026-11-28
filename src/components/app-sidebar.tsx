@@ -11,6 +11,7 @@ import { LogIn, PanelLeft, PanelLeftOpen, UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -116,7 +117,7 @@ export function AppSidebar({
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-1">
-                {group.items.map(({ href, label, icon: Icon }) => {
+                {group.items.map(({ href, label, icon: Icon, beta }) => {
                   const active = isNavItemActive(pathname, href);
                   return (
                     <SidebarMenuItem key={href}>
@@ -131,6 +132,14 @@ export function AppSidebar({
                       >
                         <Icon />
                         <span>{label}</span>
+                        {beta ? (
+                          <Badge
+                            variant="outline"
+                            className="ml-auto group-data-[collapsible=icon]:hidden"
+                          >
+                            Beta
+                          </Badge>
+                        ) : null}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

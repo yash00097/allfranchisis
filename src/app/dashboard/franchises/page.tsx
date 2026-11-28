@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { FranchiseManager } from "@/features/franchises/components/franchise-manager";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { isCollectionManager } from "@/lib/auth/collection-manager";
 import { listCollections } from "@/features/collections";
@@ -42,8 +43,9 @@ export default async function ManageFranchisesPage() {
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
           Manager workspace
         </p>
-        <h1 className="font-heading text-4xl font-bold tracking-tight">
+        <h1 className="flex items-center gap-3 font-heading text-4xl font-bold tracking-tight">
           Manage franchises
+          <Badge variant="outline">Beta</Badge>
         </h1>
         <p className="max-w-2xl text-muted-foreground">
           Group collections into franchises and set their order.

@@ -30,7 +30,7 @@ export default async function DashboardPage() {
             href="/dashboard/franchises"
             className={`${buttonVariants({ variant: "outline" })} w-fit`}
           >
-            Manage franchises
+            Manage franchises (beta)
           </Link>
         </div>
       ) : null}

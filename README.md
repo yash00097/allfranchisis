@@ -26,14 +26,14 @@
 
 Big franchises are hard to follow. Films, series, animated spin-offs and specials come out of order, sit on different services, and nobody agrees on the watch order.
 
-AllFranchisis puts each universe in one place. Editors curate **collections**: ordered lists of movies, TV shows and specific season ranges. Collections are grouped into **franchises**. Signed-in users track their progress across all of them.
+AllFranchisis puts each universe in one place. Editors curate **collections**: ordered lists of movies, TV shows and specific season ranges. Collections are the main feature. They can be grouped into **franchises** (beta). Signed-in users track their progress across all of them.
 
 ## ✨ How it helps you
 
 | | Feature | What you get |
 |---|---|---|
 | 🗂️ | **Curated collections** | Movies, TV shows and season ranges in a hand-picked watch order. Each entry is numbered (`#01`, `#02`, …). |
-| 🧭 | **Franchises** | Related collections grouped under one roof, so you see the whole universe at once. |
+| 🧭 | **Franchises** *(beta)* | Related collections grouped under one roof. Still early: collections are the priority. |
 | 🔎 | **Search & filters** | Search by name, filter by genre, and sort by watch order, title, release date or TMDB rating. |
 | 📺 | **Rich media pages** | Posters, backdrops, ratings and season details from TMDB. |
 | 🔖 | **Watchlist** | Save collections you plan to start. |
@@ -60,7 +60,7 @@ flowchart LR
 | ✅ | Next.js, Prisma and Postgres foundation |
 | ✅ | Authentication with Clerk |
 | 🟡 | TMDB-backed catalog and curated collections |
-| 🟡 | Franchises over collections (media relationships such as sequel and spin-off are next) |
+| 🟡 | Franchises over collections, in beta (media relationships such as sequel and spin-off are next) |
 | 🟡 | Watchlist, progress and favorites (per-user custom lists are next) |
 | ⬜ | Ratings and reviews at episode, movie, series and franchise level |
 | ⬜ | Server-side search and discovery |

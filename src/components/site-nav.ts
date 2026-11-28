@@ -17,6 +17,7 @@ export interface NavItem {
   icon: NavIcon;
   requiresAuth: boolean;
   requiresManager: boolean;
+  beta?: boolean;
 }
 
 export interface NavGroup {
@@ -39,6 +40,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/franchises",
         label: "Franchises",
         icon: Layers,
+        beta: true,
         requiresAuth: false,
         requiresManager: false,
       },

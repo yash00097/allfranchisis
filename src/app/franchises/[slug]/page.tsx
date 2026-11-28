@@ -73,6 +73,7 @@ export default async function FranchisePage({ params }: FranchisePageProps) {
               <ArrowLeft /> All franchises
             </Link>
             <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Beta</Badge>
               <Badge variant="secondary">
                 {count} {count === 1 ? "collection" : "collections"}
               </Badge>

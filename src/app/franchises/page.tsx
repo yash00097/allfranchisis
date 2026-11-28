@@ -1,5 +1,6 @@
 import { Layers } from "lucide-react";
 import { imagePriorityFor } from "@/features/collections/components/collection-card";
+import { Badge } from "@/components/ui/badge";
 import { FranchiseCard } from "@/features/franchises/components/franchise-card";
 import {
   Empty,
@@ -21,11 +22,13 @@ export default async function FranchisesPage() {
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
           Explore
         </p>
-        <h1 className="font-heading text-4xl font-bold tracking-tight">
+        <h1 className="flex items-center gap-3 font-heading text-4xl font-bold tracking-tight">
           Franchises
+          <Badge variant="outline">Beta</Badge>
         </h1>
         <p className="max-w-2xl text-muted-foreground">
-          Universes that bring related collections together.
+          Universes that bring related collections together. Franchises are in
+          beta; collections are the main way to browse for now.
         </p>
       </header>
       {franchises.length ? (
