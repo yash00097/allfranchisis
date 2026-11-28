@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TmdbAttribution } from "@/components/tmdb-attribution";
 import {
   Sidebar,
   SidebarContent,
@@ -193,6 +194,7 @@ export function AppSidebar({
             <ThemeToggle />
           </div>
         </Show>
+        <TmdbAttribution className="px-2 pt-2 group-data-[collapsible=icon]:hidden" />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

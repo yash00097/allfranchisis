@@ -22,6 +22,7 @@ import {
   listCollectionDiscovery,
   listCollectionGenres,
 } from "@/features/collections";
+import { TmdbAttribution } from "@/components/tmdb-attribution";
 import { tmdbImage } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
 
@@ -637,10 +638,7 @@ export default async function HomePage() {
             <p className="title-3 text-landing-fg">
               <span className="text-primary">All</span>Franchisis
             </p>
-            <p className="caption-5 text-landing-muted">
-              Movie and TV data from TMDB. This product uses the TMDB API but is
-              not endorsed or certified by TMDB.
-            </p>
+            <TmdbAttribution textClassName="caption-5 text-landing-muted" />
           </div>
           <nav aria-label="Footer" className="-mx-3 flex gap-1">
             <Link
